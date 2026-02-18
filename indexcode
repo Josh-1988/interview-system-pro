@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interview Panel System</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --primary:#4f46e5;--primary-light:#6366f1;--success:#10b981;--warning:#f59e0b;
+  --danger:#ef4444;--pink:#ec4899;--bg:#0f172a;--surface:#1e293b;
+  --surface2:#0f172a;--border:#334155;--text:#f1f5f9;--muted:#94a3b8;
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.portal{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem;background:radial-gradient(ellipse at 50% 0%,rgba(79,70,229,.18) 0%,transparent 70%)}
+.portal-card{background:rgba(30,41,59,.95);border:1px solid var(--border);border-radius:24px;padding:2.5rem;width:100%;max-width:440px;box-shadow:0 25px 60px rgba(0,0,0,.6)}
+.portal-logo{width:80px;height:80px;background:linear-gradient(135deg,var(--primary),var(--pink));border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:40px;margin:0 auto 1.5rem}
+.portal-title{font-size:1.8rem;font-weight:800;text-align:center;margin-bottom:.35rem}
+.portal-sub{text-align:center;color:var(--muted);font-size:.9rem;margin-bottom:2rem}
+.role-tabs{display:flex;background:rgba(15,23,42,.8);border-radius:12px;padding:.35rem;margin-bottom:1.75rem;gap:.35rem}
+.role-tab{flex:1;padding:.7rem;border:none;border-radius:9px;font-weight:700;font-family:inherit;font-size:.9rem;cursor:pointer;transition:all .25s;color:var(--muted);background:transparent}
+.role-tab.active{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;box-shadow:0 4px 12px rgba(79,70,229,.4)}
+.login-panel{display:none}.login-panel.active{display:block}
+.fg{margin-bottom:1.1rem}
+.fg label{display:block;font-weight:600;font-size:.88rem;margin-bottom:.45rem;color:#cbd5e1}
+.fg input,.fg select,.fg textarea{width:100%;padding:.82rem 1rem;background:rgba(15,23,42,.8);border:1.5px solid var(--border);border-radius:10px;color:#fff;font-size:.95rem;font-family:inherit;transition:all .25s}
+.fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,70,229,.18)}
+.fg textarea{resize:vertical;min-height:80px}
+.fg select option{background:#1e293b}
+.pw-wrap{position:relative}.pw-wrap input{padding-right:3rem}
+.pw-eye{position:absolute;right:.85rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:.2rem}
+.err-msg{font-size:.82rem;color:var(--danger);margin-top:.85rem;padding:.65rem 1rem;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;display:none}
+.err-msg.show{display:block}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;padding:.82rem 1.5rem;border:none;border-radius:10px;font-weight:700;font-family:inherit;font-size:.92rem;cursor:pointer;transition:all .25s;text-decoration:none}
+.btn:hover{transform:translateY(-1px);filter:brightness(1.1)}
+.btn-full{width:100%}
+.btn-primary{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;box-shadow:0 4px 14px rgba(79,70,229,.35)}
+.btn-success{background:linear-gradient(135deg,var(--success),#059669);color:#fff}
+.btn-danger{background:rgba(239,68,68,.15);color:var(--danger);border:1px solid rgba(239,68,68,.3)}
+.btn-ghost{background:rgba(99,102,241,.1);color:#818cf8;border:1px solid rgba(99,102,241,.25)}
+.btn-pink{background:linear-gradient(135deg,var(--pink),#f43f5e);color:#fff}
+.btn-warning{background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.3)}
+.btn-sm{padding:.5rem 1rem;font-size:.82rem}
+.btn-xs{padding:.35rem .75rem;font-size:.78rem}
+.app{display:none;flex-direction:column;min-height:100vh}.app.visible{display:flex}
+.topbar{background:rgba(15,23,42,.95);border-bottom:1px solid var(--border);padding:.9rem 1.5rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;backdrop-filter:blur(10px)}
+.topbar-logo{display:flex;align-items:center;gap:.75rem}
+.topbar-icon{width:38px;height:38px;background:linear-gradient(135deg,var(--primary),var(--pink));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.topbar-name{font-size:1.1rem;font-weight:800}
+.topbar-right{display:flex;align-items:center;gap:.9rem}
+.user-pill{display:flex;align-items:center;gap:.6rem;background:rgba(30,41,59,.8);border:1px solid var(--border);border-radius:20px;padding:.45rem .9rem .45rem .6rem}
+.user-av{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--pink));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.78rem}
+.user-info{line-height:1.2}
+.user-name{font-size:.85rem;font-weight:700}
+.user-role{font-size:.72rem;color:var(--muted)}
+.app-body{display:flex;flex:1}
+.sidebar{width:220px;background:rgba(15,23,42,.6);border-right:1px solid var(--border);padding:1rem .75rem;flex-shrink:0}
+.sidebar-section{font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;padding:.5rem .75rem;margin-top:.5rem}
+.nav-item{display:flex;align-items:center;gap:.65rem;padding:.7rem .85rem;border-radius:10px;cursor:pointer;color:var(--muted);font-size:.88rem;font-weight:600;transition:all .22s;margin-bottom:.2rem;border:none;background:none;width:100%;text-align:left;font-family:inherit}
+.nav-item:hover{background:rgba(99,102,241,.1);color:#c7d2fe}
+.nav-item.active{background:rgba(99,102,241,.2);color:#818cf8;border:1px solid rgba(99,102,241,.25)}
+.nav-icon{font-size:1rem;flex-shrink:0}
+.content{flex:1;padding:1.75rem;overflow-y:auto;max-width:1400px}
+.page-header{margin-bottom:1.75rem}
+.page-title{font-size:1.6rem;font-weight:800;margin-bottom:.35rem}
+.page-sub{color:var(--muted);font-size:.9rem}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:1.5rem;margin-bottom:1.25rem}
+.card-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap;gap:.75rem}
+.card-title{font-size:1.1rem;font-weight:700}
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:1.5rem}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1.25rem;transition:all .3s}
+.stat:hover{transform:translateY(-3px);box-shadow:0 12px 30px rgba(0,0,0,.4)}
+.stat-icon{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:.85rem}
+.stat-val{font-size:2rem;font-weight:800}
+.stat-lbl{color:var(--muted);font-size:.82rem;margin-top:.2rem}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:.8rem 1rem;font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;border-bottom:2px solid var(--border)}
+td{padding:1rem;border-bottom:1px solid rgba(51,65,85,.5);vertical-align:middle}
+tr:hover td{background:rgba(99,102,241,.04)}
+.no-data{text-align:center;color:var(--muted);padding:3rem;font-size:.9rem}
+.badge{display:inline-block;padding:.3rem .75rem;border-radius:20px;font-size:.75rem;font-weight:700}
+.badge-green{background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3)}
+.badge-blue{background:rgba(99,102,241,.15);color:#818cf8;border:1px solid rgba(99,102,241,.3)}
+.badge-yellow{background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.3)}
+.badge-red{background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3)}
+.badge-pink{background:rgba(236,72,153,.15);color:#f472b6;border:1px solid rgba(236,72,153,.3)}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:500;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(4px)}
+.overlay.open{display:flex}
+.modal{background:#0f172a;border:1px solid rgba(99,102,241,.4);border-radius:20px;padding:1.75rem;width:100%;max-width:600px;max-height:92vh;overflow-y:auto}
+.modal-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--border)}
+.modal-title{font-size:1.15rem;font-weight:700}
+.x-btn{width:32px;height:32px;border-radius:8px;background:rgba(239,68,68,.12);border:none;color:#ef4444;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.prog-bar{height:7px;background:rgba(99,102,241,.15);border-radius:8px;overflow:hidden;margin-top:.4rem}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--primary),var(--pink));border-radius:8px;transition:width .4s}
+.chip{display:inline-flex;align-items:center;gap:.35rem;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.25);border-radius:20px;padding:.28rem .75rem;font-size:.78rem;color:#c7d2fe;margin:.18rem}
+.info-box{background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:10px;padding:.9rem 1rem;margin:.75rem 0;font-size:.88rem;color:#a5b4fc}
+.score-btns{display:flex;gap:.45rem;margin:.6rem 0;flex-wrap:wrap;align-items:center}
+.sc{width:40px;height:40px;border-radius:8px;border:2px solid var(--border);background:rgba(30,41,59,.7);color:var(--muted);font-weight:700;cursor:pointer;font-family:inherit;transition:all .22s}
+.sc.on{background:linear-gradient(135deg,var(--primary),var(--primary-light));border-color:var(--primary);color:#fff}
+/* NEW: per-question note textarea */
+.q-note{width:100%;margin-top:.55rem;padding:.6rem .85rem;background:rgba(30,41,59,.7);border:1.5px solid rgba(99,102,241,.2);border-radius:8px;color:#cbd5e1;font-size:.83rem;font-family:inherit;resize:vertical;min-height:58px;transition:border-color .2s}
+.q-note:focus{outline:none;border-color:var(--primary)}
+.q-note::placeholder{color:var(--muted)}
+.q-block{background:rgba(15,23,42,.6);border:1px solid var(--border);border-radius:12px;padding:1rem 1.25rem;margin-bottom:.85rem}
+.divider{height:1px;background:var(--border);margin:1.25rem 0}
+.ai-panel{background:rgba(236,72,153,.07);border:1.5px solid rgba(236,72,153,.25);border-radius:14px;padding:1.25rem;margin:1rem 0}
+.ai-panel-title{color:var(--pink);font-weight:700;font-size:.95rem;margin-bottom:.65rem}
+.search-wrap{position:relative;margin-bottom:1rem}
+.search-wrap input{width:100%;padding:.75rem 1rem .75rem 2.75rem;background:rgba(15,23,42,.8);border:1.5px solid var(--border);border-radius:10px;color:#fff;font-size:.9rem;font-family:inherit;transition:border-color .2s}
+.search-wrap input:focus{outline:none;border-color:var(--primary)}
+.search-wrap::before{content:'🔍';position:absolute;left:.9rem;top:50%;transform:translateY(-50%);font-size:.85rem;pointer-events:none}
+.cand-result{background:rgba(15,23,42,.6);border:1.5px solid var(--border);border-radius:14px;padding:1.1rem 1.25rem;margin-bottom:.75rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.75rem;transition:all .25s}
+.cand-result:hover{border-color:rgba(99,102,241,.4);background:rgba(99,102,241,.08)}
+.hl{background:rgba(99,102,241,.35);border-radius:3px;padding:0 2px}
+@media(max-width:768px){.sidebar{display:none}.stats-row{grid-template-columns:1fr 1fr}.content{padding:1rem}}
+</style>
+</head>
+<body>
+
+<!-- ══ PORTAL ══ -->
+<div class="portal" id="portal">
+  <div class="portal-card">
+    <div class="portal-logo">🎯</div>
+    <div class="portal-title">Interview Panel System</div>
+    <div class="portal-sub">AI-powered candidate evaluation platform</div>
+    <div class="role-tabs">
+      <button class="role-tab active" onclick="switchRole('admin',this)">🔐 Admin</button>
+      <button class="role-tab" onclick="switchRole('panelist',this)">👤 Panelist</button>
+    </div>
+    <div class="login-panel active" id="panel-admin">
+      <div class="fg"><label>Email Address</label><input type="email" id="a-email" placeholder="admin@company.com" autocomplete="username"></div>
+      <div class="fg"><label>Password</label>
+        <div class="pw-wrap"><input type="password" id="a-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doAdminLogin()">
+        <button class="pw-eye" onclick="togglePw('a-pass',this)">👁</button></div>
+      </div>
+      <div class="err-msg" id="a-err"></div>
+      <button class="btn btn-primary btn-full" style="margin-top:1rem" onclick="doAdminLogin()">🔐 Sign In as Admin</button>
+    </div>
+    <div class="login-panel" id="panel-panelist">
+      <div class="fg"><label>Email Address</label><input type="email" id="p-email" placeholder="panelist@company.com" autocomplete="username"></div>
+      <div class="fg"><label>Password</label>
+        <div class="pw-wrap"><input type="password" id="p-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doPanelistLogin()">
+        <button class="pw-eye" onclick="togglePw('p-pass',this)">👁</button></div>
+      </div>
+      <div class="err-msg" id="p-err"></div>
+      <button class="btn btn-pink btn-full" style="margin-top:1rem" onclick="doPanelistLogin()">🎯 Sign In as Panelist</button>
+      <p style="text-align:center;color:var(--muted);font-size:.82rem;margin-top:1rem">Use credentials provided by your administrator</p>
+    </div>
+    <div style="text-align:center;margin-top:1.25rem">
+      <button onclick="hardReset()" style="background:none;border:none;color:var(--muted);font-size:.76rem;cursor:pointer;text-decoration:underline;font-family:inherit">⚙️ Reset system data</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ APP ══ -->
+<div class="app" id="app">
+  <div class="topbar">
+    <div class="topbar-logo">
+      <div class="topbar-icon">🎯</div>
+      <div><div class="topbar-name">Interview Panel System</div>
+      <div style="font-size:.72rem;color:var(--muted)" id="topbar-sub">Dashboard</div></div>
+    </div>
+    <div class="topbar-right">
+      <div class="user-pill">
+        <div class="user-av" id="uAv">?</div>
+        <div class="user-info"><div class="user-name" id="uName">—</div><div class="user-role" id="uRole">—</div></div>
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="logout()">🚪 Logout</button>
+    </div>
+  </div>
+  <div class="app-body">
+    <div class="sidebar" id="sidebar"></div>
+    <div class="content" id="content"></div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal"></div>
+</div>
+
+<script>
+/* ═══════════════════ CONFIG ═══════════════════ */
+const CFG={adminEmail:'joshkakaire@gmail.com',adminPassword:'Admin@2024!',adminName:'Josh Kakaire'};
+const DB_KEY='ips_db_v4';
+
+/* ═══════════════════ DATA ═══════════════════ */
+function dbLoad(){try{return JSON.parse(localStorage.getItem(DB_KEY))||freshDB();}catch(e){return freshDB();}}
+function dbSave(d){localStorage.setItem(DB_KEY,JSON.stringify(d));}
+function freshDB(){
+  return{
+    panelists:[],
+    candidates:[],
+    groups:[],
+    sections:[
+      {id:1,name:'Technical Skills',questions:[{id:1,text:'Demonstrates strong understanding of core technical concepts'},{id:2,text:'Shows practical experience with relevant technologies'}]},
+      {id:2,name:'Communication',questions:[{id:3,text:'Clarity and coherence in verbal communication'},{id:4,text:'Active listening and responsiveness'}]},
+      {id:3,name:'Problem Solving',questions:[{id:5,text:'Analytical thinking and logical reasoning'},{id:6,text:'Creative approaches to challenges'}]},
+      {id:4,name:'Cultural Fit',questions:[{id:7,text:'Alignment with company values and culture'},{id:8,text:'Team collaboration mindset'}]}
+    ],
+    evaluations:[],
+    seq:{p:1,c:1,g:1,s:5,q:9,e:1}
+  };
+}
+
+/* ═══════════════════ AUTH ═══════════════════ */
+let CU=null;
+function switchRole(role,btn){
+  document.querySelectorAll('.role-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.login-panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panel-'+role).classList.add('active');
+  document.getElementById('a-err').classList.remove('show');
+  document.getElementById('p-err').classList.remove('show');
+}
+function togglePw(id,btn){const el=document.getElementById(id);if(el.type==='password'){el.type='text';btn.textContent='🙈';}else{el.type='password';btn.textContent='👁';}}
+function showErr(id,msg){const el=document.getElementById(id);el.textContent=msg;el.classList.add('show');}
+function doAdminLogin(){
+  const email=document.getElementById('a-email').value.trim().toLowerCase();
+  const pass=document.getElementById('a-pass').value;
+  if(email!==CFG.adminEmail.toLowerCase()){showErr('a-err','❌ No admin account with this email.');return;}
+  if(pass!==CFG.adminPassword){showErr('a-err','❌ Incorrect password.');return;}
+  CU={email:CFG.adminEmail,name:CFG.adminName,role:'admin'};launchApp();
+}
+function doPanelistLogin(){
+  const email=document.getElementById('p-email').value.trim().toLowerCase();
+  const pass=document.getElementById('p-pass').value;
+  if(!email||!pass){showErr('p-err','❌ Please enter email and password.');return;}
+  const d=dbLoad();const p=d.panelists.find(p=>p.email.toLowerCase()===email);
+  if(!p){showErr('p-err','❌ No panelist found for this email.');return;}
+  if(p.password!==pass){showErr('p-err','❌ Incorrect password.');return;}
+  CU={email:p.email,name:p.name,role:'panelist',id:p.id};launchApp();
+}
+function logout(){
+  CU=null;
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('portal').style.display='flex';
+  document.getElementById('a-email').value='';document.getElementById('a-pass').value='';
+  document.getElementById('p-email').value='';document.getElementById('p-pass').value='';
+  document.getElementById('a-err').classList.remove('show');document.getElementById('p-err').classList.remove('show');
+}
+function hardReset(){if(!confirm('⚠️ Delete ALL data and reset to defaults?'))return;localStorage.removeItem(DB_KEY);alert('✅ Reset complete.\n\nAdmin Login:\nEmail: '+CFG.adminEmail+'\nPassword: '+CFG.adminPassword);}
+function launchApp(){
+  document.getElementById('portal').style.display='none';
+  document.getElementById('app').classList.add('visible');
+  document.getElementById('uName').textContent=CU.name;
+  document.getElementById('uRole').textContent=CU.role==='admin'?'Administrator':'Panelist';
+  document.getElementById('uAv').textContent=CU.name.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);
+  document.getElementById('topbar-sub').textContent=CU.role==='admin'?'Admin Dashboard':'Panelist Dashboard';
+  buildSidebar();
+}
+
+/* ═══════════════════ NAVIGATION ═══════════════════ */
+let activePage='';
+function buildSidebar(){
+  const sb=document.getElementById('sidebar');
+  const adminNav=[
+    {section:'MAIN'},{id:'dashboard',icon:'📊',label:'Dashboard'},
+    {section:'MANAGEMENT'},{id:'panelists',icon:'👨‍💼',label:'Panelists'},{id:'candidates',icon:'👥',label:'Candidates'},{id:'groups',icon:'🏷️',label:'Groups'},
+    {section:'EVALUATION'},{id:'questions',icon:'📝',label:'Questions'},{id:'evaldb',icon:'🗄️',label:'Eval Database'},
+    {section:'REPORTS'},{id:'report',icon:'📈',label:'Consolidated Report'}
+  ];
+  const panelistNav=[
+    {section:'EVALUATE'},{id:'myevals',icon:'📝',label:'My Evaluations'},{id:'search',icon:'🔍',label:'Search Candidates'},
+    {section:'OVERVIEW'},{id:'mydash',icon:'📊',label:'My Dashboard'}
+  ];
+  const items=CU.role==='admin'?adminNav:panelistNav;
+  sb.innerHTML=items.map(it=>{
+    if(it.section)return`<div class="sidebar-section">${it.section}</div>`;
+    return`<button class="nav-item" id="nav-${it.id}" onclick="go('${it.id}')"><span class="nav-icon">${it.icon}</span>${it.label}</button>`;
+  }).join('');
+  go(CU.role==='admin'?'dashboard':'myevals');
+}
+function go(page){
+  activePage=page;
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const ni=document.getElementById('nav-'+page);if(ni)ni.classList.add('active');
+  const pages={dashboard:pgDashboard,panelists:pgPanelists,candidates:pgCandidates,groups:pgGroups,questions:pgQuestions,evaldb:pgEvalDB,report:pgReport,myevals:pgMyEvals,search:pgSearch,mydash:pgMyDash};
+  if(pages[page])pages[page]();
+}
+
+/* ═══════════════════ MODAL ═══════════════════ */
+function openModal(html){document.getElementById('modal').innerHTML=html;document.getElementById('overlay').classList.add('open');}
+function closeModal(){document.getElementById('overlay').classList.remove('open');}
+
+/* ═══════════════════ HELPERS ═══════════════════ */
+function hl(text,q){if(!q)return text;return String(text).replace(new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi'),'<span class="hl">$1</span>');}
+function recLabel(pct){
+  if(pct>=80)return{l:'Highly Recommended',c:'badge-green'};
+  if(pct>=65)return{l:'Recommended',c:'badge-blue'};
+  if(pct>=50)return{l:'Consider',c:'badge-yellow'};
+  return{l:'Not Recommended',c:'badge-red'};
+}
+function recColor(pct){if(pct>=80)return'#10b981';if(pct>=65)return'#818cf8';if(pct>=50)return'#f59e0b';return'#ef4444';}
+function candRankings(){
+  const d=dbLoad();const map={};
+  d.evaluations.forEach(e=>{if(!map[e.candId])map[e.candId]={scores:[],cand:d.candidates.find(c=>c.id===e.candId)};map[e.candId].scores.push(e.avg);});
+  return Object.values(map).filter(v=>v.cand).map(v=>{const avg=v.scores.reduce((a,b)=>a+b,0)/v.scores.length;const pct=(avg/5)*100;return{cand:v.cand,avg,pct,count:v.scores.length,...recLabel(pct)};}).sort((a,b)=>b.avg-a.avg);
+}
+function myGroupCands(){
+  const d=dbLoad();const p=d.panelists.find(p=>p.email===CU.email);if(!p)return[];
+  const gids=d.groups.filter(g=>g.panelistIds.includes(p.id)).flatMap(g=>g.candidateIds);
+  const ids=new Set(gids);return d.candidates.filter(c=>ids.has(c.id));
+}
+function genPass(){const c='ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#$!';return Array.from({length:10},()=>c[Math.floor(Math.random()*c.length)]).join('');}
+
+// Enhanced search: matches name, phone, email, position, candidateId
+function matchCand(c,q){
+  if(!q)return true;
+  const lq=q.toLowerCase();
+  return(c.name||'').toLowerCase().includes(lq)||(c.candidateId||'').toLowerCase().includes(lq)||(c.email||'').toLowerCase().includes(lq)||(c.phone||'').toLowerCase().includes(lq)||(c.position||'').toLowerCase().includes(lq);
+}
+
+/* ═══════════════════ ADMIN — DASHBOARD ═══════════════════ */
+function pgDashboard(){
+  const d=dbLoad();const ranks=candRankings();
+  const evalCount=d.evaluations.length;
+  const pendingCount=d.candidates.filter(c=>!d.evaluations.some(e=>e.candId===c.id)).length;
+  document.getElementById('content').innerHTML=`
+  <div class="page-header"><div class="page-title">📊 Dashboard</div><div class="page-sub">Overview of the interview process</div></div>
+  <div class="stats-row">
+    <div class="stat"><div class="stat-icon" style="background:linear-gradient(135deg,#4f46e5,#818cf8)">👥</div><div class="stat-val">${d.candidates.length}</div><div class="stat-lbl">Total Candidates</div></div>
+    <div class="stat"><div class="stat-icon" style="background:linear-gradient(135deg,#ec4899,#f43f5e)">👨‍💼</div><div class="stat-val">${d.panelists.length}</div><div class="stat-lbl">Panelists</div></div>
+    <div class="stat"><div class="stat-icon" style="background:linear-gradient(135deg,#10b981,#059669)">📝</div><div class="stat-val">${evalCount}</div><div class="stat-lbl">Evaluations Done</div></div>
+    <div class="stat"><div class="stat-icon" style="background:linear-gradient(135deg,#f59e0b,#f97316)">⏳</div><div class="stat-val">${pendingCount}</div><div class="stat-lbl">Pending</div></div>
+  </div>
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-title">🏆 Candidate Rankings</div>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        <button class="btn btn-success btn-sm" onclick="exportCSV()">📊 CSV</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportXLSX()">📈 Excel</button>
+        <button class="btn btn-warning btn-sm" onclick="exportDetailedCSV()">📋 Detailed CSV</button>
+        <button class="btn btn-ghost btn-sm" onclick="printReport()">🖨️ Report</button>
+      </div>
+    </div>
+    ${ranks.length?`<div class="tbl-wrap"><table>
+      <thead><tr><th>#</th><th>Name</th><th>Position</th><th>Avg Score</th><th>Evals</th><th>Status</th><th></th></tr></thead>
+      <tbody>${ranks.map((r,i)=>`<tr>
+        <td><strong style="color:${i<3?['#fbbf24','#94a3b8','#f97316'][i]:'#fff'}">${i+1}</strong></td>
+        <td><strong>${r.cand.name}</strong></td>
+        <td style="color:var(--muted)">${r.cand.position}</td>
+        <td><strong>${r.avg.toFixed(1)}/5</strong><div class="prog-bar"><div class="prog-fill" style="width:${r.pct}%"></div></div></td>
+        <td style="text-align:center">${r.count}</td>
+        <td><span class="badge ${r.c}">${r.l}</span></td>
+        <td><button class="btn btn-ghost btn-xs" onclick="showAI(${r.cand.id})">🤖 AI</button></td>
+      </tr>`).join('')}</tbody>
+    </table></div>`:'<div class="no-data">No evaluations yet.</div>'}
+  </div>`;
+}
+
+/* ═══════════════════ ADMIN — PANELISTS ═══════════════════ */
+let panelSearch='';
+function pgPanelists(){
+  const d=dbLoad();let list=d.panelists;
+  if(panelSearch){const q=panelSearch.toLowerCase();list=list.filter(p=>p.name.toLowerCase().includes(q)||p.email.toLowerCase().includes(q)||(p.position||'').toLowerCase().includes(q));}
+  document.getElementById('content').innerHTML=`
+  <div class="page-header"><div class="page-title">👨‍💼 Panelists</div><div class="page-sub">Manage panelist accounts and login credentials</div></div>
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-title">All Panelists (${d.panelists.length})</div>
+      <div style="display:flex;gap:.5rem">
+        <button class="btn btn-ghost btn-sm" onclick="modalUploadPanelists()">📤 Upload CSV</button>
+        <button class="btn btn-primary btn-sm" onclick="modalAddPanelist()">➕ Add Panelist</button>
+      </div>
+    </div>
+    <div class="search-wrap"><input type="text" placeholder="Search by name, email, position…" value="${panelSearch}" oninput="panelSearch=this.value;pgPanelists()"></div>
+    ${list.length?`<div class="tbl-wrap"><table>
+      <thead><tr><th>Name</th><th>Email</th><th>Position</th><th>Phone</th><th>Groups</th><th>Evals</th><th>Actions</th></tr></thead>
+      <tbody>${list.map(p=>{
+        const groups=d.groups.filter(g=>g.panelistIds.includes(p.id));
+        const evals=d.evaluations.filter(e=>e.panelistEmail===p.email).length;
+        return`<tr>
+          <td><strong>${p.name}</strong></td>
+          <td style="color:var(--muted);font-size:.88rem">${p.email}</td>
+          <td style="color:var(--muted)">${p.position||'—'}</td>
+          <td style="color:var(--muted)">${p.phone||'—'}</td>
+          <td>${groups.map(g=>`<span class="chip">${g.name}</span>`).join('')||'<span style="color:var(--muted);font-size:.82rem">None</span>'}</td>
+          <td style="text-align:center"><span class="badge badge-blue">${evals}</span></td>
+          <td>
+            <button class="btn btn-ghost btn-xs" onclick="modalViewCredentials(${p.id})" style="margin-right:.3rem">🔑 Credentials</button>
+            <button class="btn btn-xs" style="background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.25)" onclick="deletePanelist(${p.id})">🗑️</button>
+          </td>
+        </tr>`;}).join('')}</tbody>
+    </table></div>`:`<div class="no-data">No panelists ${panelSearch?'match your search':'yet. Add your first panelist above.'}.</div>`}
+  </div>`;
+}
+function iStyle(){return'width:100%;padding:.82rem 1rem;background:rgba(15,23,42,.8);border:1.5px solid var(--border);border-radius:10px;color:#fff;font-size:.95rem;font-family:inherit';}
+function modalAddPanelist(){
+  openModal(`
+    <div class="modal-hdr"><span class="modal-title">➕ Add Panelist</span><button class="x-btn" onclick="closeModal()">×</button></div>
+    <div class="info-box">After adding, the panelist uses these credentials to log in.</div>
+    <div class="fg"><label>Full Name *</label><input type="text" id="pn-name" placeholder="e.g. Sarah Johnson" style="${iStyle()}"></div>
+    <div class="fg"><label>Email Address *</label><input type="email" id="pn-email" placeholder="sarah@company.com" style="${iStyle()}"></div>
+    <div class="fg"><label>Password *</label>
+      <div class="pw-wrap"><input type="text" id="pn-pass" placeholder="Set a login password" style="${iStyle().replace('padding:.82rem 1rem','padding:.82rem 3rem .82rem 1rem')}">
+      <button class="pw-eye" onclick="document.getElementById('pn-pass').value=genPass()" title="Generate">🔄</button></div>
+      <div style="font-size:.78rem;color:var(--muted);margin-top:.3rem">Click 🔄 to auto-generate a secure password</div>
+    </div>
+    <div class="fg"><label>Position / Title</label><input type="text" id="pn-pos" placeholder="e.g. Senior Engineer" style="${iStyle()}"></div>
+    <div class="fg"><label>Phone Number</label><input type="tel" id="pn-phone" placeholder="e.g. 0712345678" style="${iStyle()}"></div>
+    <div id="pn-err" class="err-msg"></div>
+    <div style="display:flex;gap:.75rem;margin-top:1.25rem">
+      <button class="btn btn-danger" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" style="flex:1" onclick="submitAddPanelist()">✅ Add Panelist</button>
+    </div>`);
+  setTimeout(()=>document.getElementById('pn-name').focus(),80);
+}
+function submitAddPanelist(){
+  const name=document.getElementById('pn-name').value.trim();
+  const email=document.getElementById('pn-email').value.trim().toLowerCase();
+  const pass=document.getElementById('pn-pass').value.trim();
+  const pos=document.getElementById('pn-pos').value.trim();
+  const phone=document.getElementById('pn-phone').value.trim();
+  const err=document.getElementById('pn-err');
+  if(!name){err.textContent='❌ Name is required.';err.classList.add('show');return;}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){err.textContent='❌ Enter a valid email.';err.classList.add('show');return;}
+  if(email===CFG.adminEmail.toLowerCase()){err.textContent='❌ This email is reserved for admin.';err.classList.add('show');return;}
+  if(pass.length<4){err.textContent='❌ Password must be at least 4 characters.';err.classList.add('show');return;}
+  const d=dbLoad();
+  if(d.panelists.find(p=>p.email.toLowerCase()===email)){err.textContent='❌ Email already registered.';err.classList.add('show');return;}
+  const id=d.seq.p++;
+  d.panelists.push({id,name,email,password:pass,position:pos,phone,createdAt:new Date().toLocaleDateString()});
+  dbSave(d);closeModal();pgPanelists();
+  setTimeout(()=>modalViewCredentialsData({id,name,email,password:pass,position:pos,phone}),200);
+}
+function modalViewCredentials(id){const d=dbLoad();const p=d.panelists.find(p=>p.id===id);if(p)modalViewCredentialsData(p);}
+function modalViewCredentialsData(p){
+  openModal(`
+    <div class="modal-hdr"><span class="modal-title">🔑 Login Credentials</span><button class="x-btn" onclick="closeModal()">×</button></div>
+    <div style="background:rgba(16,185,129,.08);border:1.5px solid rgba(16,185,129,.3);border-radius:14px;padding:1.5rem;margin-bottom:1.25rem">
+      <div style="font-size:1.1rem;font-weight:700;margin-bottom:.35rem">${p.name}</div>
+      <div style="color:var(--muted);font-size:.85rem">${p.position||'Panelist'}</div>
+    </div>
+    <div class="info-box" style="background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.3);color:#fbbf24">📋 Share these credentials with the panelist.</div>
+    <div style="background:rgba(15,23,42,.9);border:1px solid var(--border);border-radius:12px;padding:1.25rem;margin:.75rem 0">
+      <div style="margin-bottom:.85rem"><div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;margin-bottom:.3rem">Role</div><div style="font-weight:700">👤 Panelist</div></div>
+      <div style="margin-bottom:.85rem"><div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;margin-bottom:.3rem">Email</div><div style="font-weight:700;font-family:monospace">${p.email}</div></div>
+      <div><div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;margin-bottom:.3rem">Password</div><div style="font-weight:700;font-family:monospace;font-size:1.1rem;color:#10b981">${p.password}</div></div>
+    </div>
+    <div style="display:flex;gap:.75rem;margin-top:1.25rem">
+      <button class="btn btn-ghost" style="flex:1" onclick="copyCredentials('${p.name}','${p.email}','${p.password}')">📋 Copy</button>
+      <button class="btn btn-ghost" style="flex:1" onclick="resetPassword(${p.id})">🔄 Reset Password</button>
+      <button class="btn btn-primary" onclick="closeModal()">Done</button>
+    </div>`);
+}
+function copyCredentials(name,email,pass){const text=`Interview Panel System — Login Credentials\n\nName: ${name}\nRole: Panelist\nEmail: ${email}\nPassword: ${pass}\n\nLogin at: ${window.location.href.split('?')[0]}`;navigator.clipboard.writeText(text).then(()=>alert('✅ Credentials copied!')).catch(()=>alert('Email: '+email+'\nPassword: '+pass));}
+function resetPassword(id){const np=prompt('Enter new password (min 4 characters):');if(!np||np.length<4){if(np!==null)alert('❌ Password too short.');return;}const d=dbLoad();const p=d.panelists.find(p=>p.id===id);if(!p)return;p.password=np;dbSave(d);closeModal();setTimeout(()=>modalViewCredentialsData(p),200);}
+function deletePanelist(id){if(!confirm('Remove this panelist? Their evaluations will be kept.'))return;const d=dbLoad();d.panelists=d.panelists.filter(p=>p.id!==id);d.groups.forEach(g=>{g.panelistIds=g.panelistIds.filter(pid=>pid!==id);});dbSave(d);pgPanelists();}
+function modalUploadPanelists(){
+  openModal(`
+    <div class="modal-hdr"><span class="modal-title">📤 Upload Panelists (CSV)</span><button class="x-btn" onclick="closeModal()">×</button></div>
+    <div class="info-box">CSV columns: <strong>name, email, password, position, phone</strong></div>
+    <button class="btn btn-ghost btn-sm" style="margin-bottom:.75rem" onclick="dlPanelistTemplate()">📄 Download Template</button>
+    <div style="border:2px dashed rgba(99,102,241,.4);border-radius:12px;padding:2rem;text-align:center;cursor:pointer;margin-bottom:1rem" onclick="document.getElementById('csv-file').click()">
+      <div style="font-size:2rem;margin-bottom:.5rem">📁</div><div style="font-weight:600">Click to select CSV file</div>
+    </div>
+    <input type="file" id="csv-file" accept=".csv" style="display:none" onchange="parsePanelistCSV(event)">
+    <div id="csv-preview"></div>`);
+}
+function dlPanelistTemplate(){const rows=[['name','email','password','position','phone'],['John Doe','john@co.com','Pass1234','Engineer','0712345678']];const b=new Blob([rows.map(r=>r.join(',')).join('\n')],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='panelists_template.csv';a.click();}
+function parsePanelistCSV(ev){Papa.parse(ev.target.files[0],{header:true,complete:r=>{const v=r.data.filter(row=>row.name&&row.email&&row.password);document.getElementById('csv-preview').innerHTML=`<p style="margin-bottom:.75rem;color:var(--muted)"><strong style="color:#fff">${v.length}</strong> valid rows found</p>${v.length?`<button class="btn btn-success btn-full" onclick='importPanelists(${JSON.stringify(v)})'>✅ Import ${v.length} Panelists</button>`:''}`;}});}
+function importPanelists(rows){const d=dbLoad();let added=0,sk=0;rows.forEach(r=>{const em=r.email.toLowerCase().trim();if(em===CFG.adminEmail.toLowerCase()||d.panelists.find(p=>p.email.toLowerCase()===em)){sk++;return;}d.panelists.push({id:d.seq.p++,name:r.name,email:em,password:r.password,position:r.position||'',phone:r.phone||'',createdAt:new Date().toLocaleDateString()});added++;});dbSave(d);closeModal();pgPanelists();alert(`✅ Imported ${added} panelist(s). Skipped ${sk}.`);}
+
+/* ═══════════════════ ADMIN — CANDIDATES ═══════════════════ */
+let candSearch='',candFilter='all';
+function pgCandidates(){
+  const d=dbLoad();const evaledIds=new Set(d.evaluations.map(e=>e.candId));
+  let list=d.candidates;
+  if(candFilter==='evaled')list=list.filter(c=>evaledIds.has(c.id));
+  if(candFilter==='pending')list=list.filter(c=>!evaledIds.has(c.id));
+  if(candSearch)list=list.filter(c=>matchCand(c,candSearch));
+  const chips=[['all','All ('+d.candidates.length+')'],['evaled','✅ Evaluated'],['pending','⏳ Pending']].map(([k,l])=>`<button class="btn btn-xs ${candFilter===k?'btn-primary':'btn-ghost'}" onclick="candFilter='${k}';pgCandidates()">${l}</button>`).join('');
+  document.getElementById('content').innerHTML=`
+  <div class="page-header"><div class="page-title">👥 Candidates</div><div class="page-sub">Manage interview candidates</div></div>
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-title">Candidates (${d.candidates.length})</div>
+      <div style="display:flex;gap:.5rem">
+        <button class="btn btn-ghost btn-sm" onclick="modalUploadCandidates()">📤 Upload CSV</button>
+        <button class="btn btn-primary btn-sm" onclick="modalAddCandidate()">➕ Add</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:.75rem;margin-bottom:1rem;flex-wrap:wrap;align-items:center">
+      <div class="search-wrap" style="flex:1;margin-bottom:0"><input type="text" placeholder="Search by name, phone, email, position, ID…" value="${candSearch}" oninput="candSearch=this.value;pgCandidates()"></div>
+      <div style="display:flex;gap:.4rem">${chips}</div>
+    </div>
+    ${list.length?`<div class="tbl-wrap"><table>
+      <thead><tr><th>ID</th><th>Name</th><th>Position</th><th>Email</th><th>Phone</th><th>Evals</th><th>Avg</th><th></th></tr></thead>
+      <tbody>${list.map(c=>{
+        const evals=d.evaluations.filter(e=>e.candId===c.id);
+        const avg=evals.length?(evals.reduce((s,e)=>s+e.avg,0)/evals.length).toFixed(1):'—';
+        return`<tr>
+          <td style="font-family:monospace;color:#818cf8">${c.candidateId}</td>
+          <td><strong>${c.name}</strong></td>
+          <td style="color:var(--muted)">${c.position}</td>
+          <td style="color:var(--muted);font-size:.85rem">${c.email||'—'}</td>
+          <td style="color:var(--muted)">${c.phone||'—'}</td>
+          <td style="text-align:center"><span class="badge ${evals.length?'badge-green':'badge-yellow'}">${evals.length||'⏳'}</span></td>
+          <td><strong>${avg}${avg!=='—'?'/5':''}</strong></td>
+          <td>
+            <button class="btn btn-ghost btn-xs" onclick="showAI(${c.id})" style="margin-right:.3rem">🤖</button>
+            <button class="btn btn-xs" style="background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.25)" onclick="deleteCandidate(${c.id})">🗑️</button>
+          </td>
+        </tr>`;}).join('')}</tbody>
+    </table></div>`:`<div class="no-data">No candidates ${candSearch?'match your search':'yet.'}.</div>`}
+  </div>`;
+}
+function modalAddCandidate(){
+  openModal(`
+    <div class="modal-hdr"><span class="modal-title">➕ Add Candidate</span><button class="x-btn" onclick="closeModal()">×</button></div>
+    <div class="fg"><label>Phone / ID *</label><input type="tel" id="cn-phone" placeholder="07XXXXXXXX (used as candidate ID)" style="${iStyle()}"></div>
+    <div class="fg"><label>Full Name *</label><input type="text" id="cn-name" placeholder="Full name" style="${iStyle()}"></div>
+    <div class="fg"><label>Position Applied *</label><input type="text" id="cn-pos" placeholder="e.g. Software Engineer" style="${iStyle()}"></div>
+    <div class="fg"><label>Email</label><input type="email" id="cn-email" placeholder="candidate@email.com" style="${iStyle()}"></div>
+    <div id="cn-err" class="err-msg"></div>
+    <div style="display:flex;gap:.75rem;margin-top:1.25rem">
+      <button class="btn btn-danger" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" style="flex:1" onclick="submitAddCandidate()">✅ Add Candidate</button>
+    </div>`);
+  setTimeout(()=>document.getElementById('cn-phone').focus(),80);
+}
+function submitAddCandidate(){
+  const phone=document.getElementById('cn-phone').value.trim();
+  const name=document.getElementById('cn-name').value.trim();
+  const pos=document.getElementById('cn-pos').value.trim();
+  const email=document.getElementById('cn-email').value.trim();
+  const err=document.getElementById('cn-err');
+  if(!phone){err.textContent='❌ Phone/ID required.';err.classList.add('show');return;}
+  if(name.length<2){err.textContent='❌ Enter a valid name.';err.classList.add('show');return;}
+  if(!pos){err.textContent='❌ Enter position.';err.classList.add('show');return;}
+  const d=dbLoad();
+  if(d.candidates.find(c=>c.candidateId===phone)){err.textContent='❌ ID already exists.';err.classList.add('show');return;}
+  d.candidates.push({id:d.seq.c++,candidateId:phone,name,position:pos,email,phone,createdAt:new Date().toLocaleDateString()});
+  dbSave(d);closeModal();pgCandidates();
+}
+function deleteCandidate(id){if(!confirm('Delete this candidate?'))return;const d=dbLoad();d.candidates=d.candidates.filter(c=>c.id!==id);d.groups.forEach(g=>{g.candidateIds=g.candidateIds.filter(cid=>cid!==id);});dbSave(d);pgCandidates();}
+function modalUploadCandidates(){
+  openModal(`
+    <div class="modal-hdr"><span class="modal-title">📤 Upload Candidates (CSV)</span><button class="x-btn" onclick="closeModal()">×</button></div>
+    <div class="info-box">CSV columns: <strong>phone, name, position, email</strong></div>
+    <button class="btn btn-ghost btn-sm" style="margin-bottom:.75rem" onclick="dlCandTemplate()">📄 Download Template</button>
+    <div style="border:2px dashed rgba(99,102,241,.4);border-radius:12px;padding:2rem;text-align:center;cursor:pointer" onclick="document.getElementById('ccsv').click()">
+      <div style="font-size:2rem;margin-bottom:.5rem">📁</div><div style="font-weight:600">Click to select CSV</div>
+    </div>
+    <input type="file" id="ccsv" accept=".csv" style="display:none" onchange="parseCandCSV(event)">
+    <div id="ccsv-preview"></div>`);
+}
+function dlCandTemplate(){const rows=[['phone','name','position','email'],['0712345678','Jane Doe','Engineer','jane@co.com']];const b=new Blob([rows.map(r=>r.join(',')).join('\n')],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='candidates_template.csv';a.click();}
+function parseCandCSV(ev){Papa.parse(ev.target.files[0],{header:true,complete:r=>{const v=r.data.filter(row=>row.phone&&row.name&&row.position);document.getElementById('ccsv-preview').innerHTML=`<p style="margin:.75rem 0;color:var(--muted)"><strong style="color:#fff">${v.length}</strong> valid rows</p>${v.length?`<button class="btn btn-success btn-full" onclick='importCandidates(${JSON.stringify(v)})'>✅ Import ${v.length}</button>`:''}`;}});}
+function importCandidates(rows){const d=dbLoad();let a=0,sk=0;rows.forEach(r=>{if(d.candidates.find(c=>c.candidateId===String(r.phone).trim())){sk++;return;}d.candidates.push({id:d.seq.c++,candidateId:String(r.phone).trim(),name:r.name,position:r.position,email:r.email||'',phone:String(r.phone).trim(),createdAt:new Date().toLocaleDateString()});a++;});dbSave(d);closeModal();pgCandidates();alert(`✅ Added ${a}. Skipped ${sk}.`);}
+
+/* ═══════════════════ ADMIN — GROUPS (RESTORED) ═══════════════════ */
+function pgGroups(){
+  const d=dbLoad();
+  document.getElementById('content').innerHTML=`
+  <div class="page-header"><div class="page-title">🏷️ Groups</div><div class="page-sub">Assign panelists to candidate groups</div></div>
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-title">Interview Groups (${d.groups.length})</div>
+      <button class="btn btn-primary btn-sm" onclick="modalCreateGroup()">➕ Create Group</button>
+    </div>
+    <div class="info-box">Groups control which panelists can see which candidates. A panelist only sees candidates in their assigned group(s).</div>
+    ${d.groups.length?d.groups.map(g=>{
+      const panels=d.panelists.filter(p=>g.panelistIds.includes(p.id));
+      const cands=d.candidates.filter(c=>g.candidateIds.includes(c.id));
+      return`<div style="background:rgba(15,23,42,.6);border:1px solid var(--border);border-radius:14px;padding:1.25rem;margin-bottom:.85rem">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.85rem;flex-wrap:wrap;gap:.5rem">
+          <div><strong style="font-size:1.05rem">${g.name}</strong>${g.desc?`<div style="color:var(--muted);font-size:.85rem;margin-top:.15rem">${g.desc}</div>`:''}</div>
+          <div><button class="btn btn-ghost btn-xs" onclick="editGroup(${g.id})" style="margin-right:.4rem">✏️ Edit</button><button class="btn btn-xs" style="background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.25)" onclick="deleteGroup(${g.id})">🗑️</button></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+          <div><div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;font-weight:700;margin-bottom:.4rem">👨‍💼 Panelists (${panels.length})</div>${panels.map(p=>`<span class="chip">👤 ${p.name}</span>`).join('')||'<span style="color:var(--muted);font-size:.82rem">None</span>'}</div>
+          <div><div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;font-weight:700;margin-bottom:.4rem">👥 Candidates (${cands.length})</div>${cands.map(c=>`<span class="chip">🧑 ${c.name}</span>`).join('')||'<span style="color:var(--muted);font-size:.82rem">None</span>'}</div>
+        </div>
+      </div>`;}).join(''):`<div class="no-data">No groups yet.</div>`}
+  </div>`;
+}
+function groupFormHTML(g=null){
+  const d=dbLoad();
+  const panelChk=d.panelists.map(p=>`
+    <label style="display:flex;align-items:center;gap:.6rem;padding:.6rem .75rem;border-radius:8px;background:rgba(15,23,42,.6);border:1px solid var(--border);margin-bottom:.4rem;cursor:pointer">
+      <input type="checkbox" class="gp" value="${p.id}" ${g&&g.panelistIds.includes(p.id)?'checked':''} style="width:15px;height:15px;flex-shrink:0">
+      <div><strong style="font-size:.88rem">${p.name}</strong> <span style="color:var(--muted);font-size:.8rem">${p.position||''}</span></div>
+    </label>`).join('');
+  const candChk=d.candidates.map(c=>`
+    <label style="display:flex;align-items:center;gap:.6rem;padding:.6rem .75rem;border-radius:8px;background:rgba(15,23,42,.6);border:1px solid var(--border);margin-bottom:.4rem;cursor:pointer">
+      <input type="checkbox" class="gc" value="${c.id}" ${g&&g.candidateIds.includes(c.id)?'checked':''} style="width:15px;height:15px;flex-shrink:0">
+      <div><strong style="font-size:.88rem">${c.name}</strong> <span style="color:var(--muted);font-size:.8rem">${c.position} | ${c.candidateId}</span></div>
+    </label>`).join('');
+  return`
+    <div class="fg"><label>Group Name *</label><input type="text" id="g-name" value="${g?g.name:''}" placeholder="e.g. Engineering Panel A" style="${iStyle()}"></div>
+    <div class="fg"><label>Description</label><input type="text" id="g-desc" value="${g?g.desc||'':''}" placeholder="Optional" style="${iStyle()}"></div>
+    <div class="fg"><label>Assign Panelists</label><div style="max-height:200px;overflow-y:auto;padding:.25rem">${panelChk||'<p style="color:var(--muted)">No panelists added yet.</p>'}</div></div>
+    <div class="fg"><label>Assign Candidates</label><div style="max-height:200px;overflow-y:auto;padding:.25rem">${candChk||'<p style="color:var(--muted)">No candidates added yet.</p>'}</div></div>`;
+}
+function modalCreateGroup(){openModal(`<div class="modal-hdr"><span class="modal-title">➕ Create Group</span><button class="x-btn" onclick="closeModal()">×</button></div>${groupFormHTML()}<div style="display:flex;gap:.75rem;margin-top:1.25rem"><button class="btn btn-danger" onclick="closeModal()">Cancel</button><button class="btn btn-primary" style="flex:1" onclick="submitGroup(null)">💾 Create</button></div>`);}
+function editGroup(id){const d=dbLoad();const g=d.groups.find(g=>g.id===id);openModal(`<div class="modal-hdr"><span class="modal-title">✏️ Edit Group</span><button class="x-btn" onclick="closeModal()">×</button></div>${groupFormHTML(g)}<div style="display:flex;gap:.75rem;margin-top:1.25rem"><button class="btn btn-danger" onclick="closeModal()">Cancel</button><button class="btn btn-primary" style="flex:1" onclick="submitGroup(${id})">💾 Save</button></div>`);}
+function submitGroup(id){
+  const name=document.getElementById('g-name').value.trim();
+  if(!name){alert('❌ Group name required.');return;}
+  const pids=[...document.querySelectorAll('.gp:checked')].map(c=>parseInt(c.value));
+  const cids=[...document.querySelectorAll('.gc:checked')].map(c=>parseInt(c.value));
+  const d=dbLoad();
+  if(id){const g=d.groups.find(g=>g.id===id);if(g){g.name=name;g.desc=document.getElementById('g-desc').value.trim();g.panelistIds=pids;g.candidateIds=cids;}}
+  else{d.groups.push({id:d.seq.g++,name,desc:document.getElementById('g-desc').value.trim(),panelistIds:pids,candidateIds:cids});}
+  dbSave(d);closeModal();pgGroups();
+}
+function deleteGroup(id){if(!confirm('Delete this group?'))return;const d=dbLoad();d.groups=d.groups.filter(g=>g.id!==id);dbSave(d);pgGroups();}
+
+/* ═══════════════════ ADMIN — QUESTIONS (now shows note hint) ═══════════════════ */
+function pgQuestions(){
+  const d=dbLoad();
+  document.getElementById('content').innerHTML=`
+  <div class="page-header"><div class="page-title">📝 Questions</div><div class="page-sub">Manage evaluation criteria — panelists can add per-question notes during evaluation</div></div>
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-title">Question Bank</div>
+      <div style="display:flex;gap:.5rem">
+        <button class="btn btn-ghost btn-sm" onclick="modalAIQuestions()">✨ AI Suggest</button>
+        <button class="btn btn-primary btn-sm" onclick="modalAddSection()">➕ Section</button>
+      </div>
+    </div>
+    <div class="info-box">💬 Every question has a per-question notes/comments field that panelists fill during evaluation.</div>
+    ${d.sections.map(sec=>`
+      <div style="background:rgba(15,23,42,.6);border:1px solid var(--border);border-radius:14px;padding:1.25rem;margin-bottom:.85rem">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.85rem;flex-wrap:wrap;gap:.5rem">
+          <strong>${sec.name}</strong>
+          <div><button class="btn btn-ghost btn-xs" onclick="modalAddQ(${sec.id})" style="margin-right:.4rem">➕ Add Q</button><button class="btn btn-xs" style="background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.25)" onclick="deleteSection(${sec.id})">🗑️</button></div>
+        </div>
+        ${sec.questions.length?sec.questions.map((q,i)=>`
+          <div class="q-block">
+            <div style="display:flex;justify-content:space-between;gap:.75rem;align-items:flex-start">
+              <span><strong style="color:var(--muted)">Q${i+1}.</strong> ${q.text}
+                <div style="margin-top:.35rem;font-size:.76rem;color:#818cf8">💬 Panelists will write observation notes here during evaluation</div>
+              </span>
+              <button class="btn btn-xs" style="background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.25);flex-shrink:0" onclick="deleteQ(${sec.id},${q.id})">🗑️</button>
+            </div>
+          </div>`).join(''):'<p style="color:var(--muted);font-size:.88rem;padding:.5rem 0">No questions yet.</p>'}
+      </div>`).join('')}
+  </div>`;
+}
+function modalAddSection(){openModal(`<div class="modal-hdr"><span class="modal-title">➕ Add Section</span><button class="x-btn" onclick="closeModal()">×</button></div><div class="fg"><label>Section Name</label><input type="text" id="sec-name" placeholder="e.g. Leadership" style="${iStyle()}"></div><div style="display:flex;gap:.75rem;margin-top:1rem"><button class="btn btn-danger" onclick="closeModal()">Cancel</button><button class="btn btn-primary" style="flex:1" onclick="submitSection()">Save</button></div>`);setTimeout(()=>document.getElementById('sec-name').focus(),80);}
+function submitSection(){const n=document.getElementById('sec-name').value.trim();if(!n)return;const d=dbLoad();d.sections.push({id:d.seq.s++,name:n,questions:[]});dbSave(d);closeModal();pgQuestions();}
+function deleteSection(id){if(!confirm('Delete section and all its questions?'))return;const d=dbLoad();d.sections=d.sections.filter(s=>s.id!==id);dbSave(d);pgQuestions();}
+function modalAddQ(secId){const d=dbLoad();const sec=d.sections.find(s=>s.id===secId);openModal(`<div class="modal-hdr"><span class="modal-title">➕ Add Question — ${sec.name}</span><button class="x-btn" onclick="closeModal()">×</button></div><div class="fg"><label>Question</label><textarea id="q-text" placeholder="Enter evaluation question…" style="${iStyle()};resize:vertical;min-height:90px"></textarea></div><div style="display:flex;gap:.75rem;margin-top:1rem"><button class="btn btn-danger" onclick="closeModal()">Cancel</button><button class="btn btn-primary" style="flex:1" onclick="submitQ(${secId})">Add</button></div>`);}
+function submitQ(secId){const t=document.getElementById('q-text').value.trim();if(!t)return;const d=dbLoad();const sec=d.sections.find(s=>s.id===secId);if(sec)sec.questions.push({id:d.seq.q++,text:t});dbSave(d);closeModal();pgQuestions();}
+function deleteQ(secId,qId){if(!confirm('Delete this question?'))return;const d=dbLoad();const sec=d.sections.find(s=>s.id===secId);if(sec)sec.questions=sec.questions.filter(q=>q.id!==qId);dbSave(d);pgQuestions();}
+function modalAIQuestions(){
+  const sug={'Technical Skills':['Demonstrates mastery of OOP and design patterns','Proficient with version control (Git, CI/CD)','Writes clean, testable, documented code'],'Communication':['Explains complex ideas clearly to non-technical stakeholders','Gives and receives constructive feedback effectively'],'Problem Solving':['Optimises for time and space complexity','Debugs complex issues systematically and independently'],'Leadership':['Demonstrates ability to mentor and guide peers','Takes initiative without being asked'],'Cultural Fit':['Shows alignment with team collaboration values','Demonstrates integrity and accountability']};
+  openModal(`<div class="modal-hdr"><span class="modal-title">✨ AI Question Suggestions</span><button class="x-btn" onclick="closeModal()">×</button></div><div class="ai-panel"><div class="ai-panel-title">🤖 Curated by AI</div><p style="color:var(--muted);font-size:.88rem">Select questions to add to your bank.</p></div>${Object.entries(sug).map(([sec,qs])=>`<div style="margin-bottom:1rem"><div style="font-weight:700;color:#818cf8;margin-bottom:.5rem">${sec}</div>${qs.map(q=>`<label style="display:flex;gap:.6rem;align-items:flex-start;margin-bottom:.5rem;cursor:pointer"><input type="checkbox" class="ai-q" value="${sec}|||${q}" style="margin-top:3px;width:15px;height:15px;flex-shrink:0"><span style="font-size:.88rem">${q}</span></label>`).join('')}</div>`).join('')}<button class="btn btn-pink btn-full" style="margin-top:.75rem" onclick="importAIQs()">✅ Add Selected</button>`);
+}
+function importAIQs(){const chk=[...document.querySelectorAll('.ai-q:checked')];if(!chk.length){alert('Select at least one.');return;}const d=dbLoad();chk.forEach(cb=>{const[sn,qt]=cb.value.split('|||');let sec=d.sections.find(s=>s.name===sn);if(!sec){sec={id:d.seq.s++,name:sn,questions:[]};d.sections.push(sec);}sec.questions.push({id:d.seq.q++,text:qt});});dbSave(d);closeModal();pgQuestions();alert(`✅ Added ${chk.length} question(s)!`);}
+
+/* ═══════════════════ ADMIN — EVAL DB ═══════════════════ */
+let evalSearch='';
+function pgEvalDB(){
+  const d=dbLoad();let list=d.evaluations;
+  if(evalSearch){const q=evalSearch.toLowerCase();list=list.filter(e=>(e.candName||'').toLowerCase().includes(q)||(e.panelistEmail||'').toLowerCase().includes(q)||(e.panelistName||'').toLowerCase().includes(q));}
+  const avgAll=list.length?(list.reduce((s,e)=>s+e.avg,0)/list.length).toFixed(1):'—';
+  document.getElementById('content').innerHTML=`
+  <div class="page-header"><div class="page-title">🗄️ Evaluation Database</div><div class="page-sub">All submitted evaluations</div></div>
+  <div class="stats-row">
+    <div class="stat"><div class="stat-icon" style="background:linear-gradient(135deg,#4f46e5,#818cf8)">📝</div><div class="stat-val">${d.evaluations.length}</div><div class="stat-lbl">Total Evaluations</div></div>
+    <div class="stat"><div class="stat-icon" style="background:linear-gradient(135deg,#10b981,#059669)">👥</div><div class="stat-val">${new Set(d.evaluations.map(e=>e.candId)).size}</div><div class="stat-lbl">Candidates Evaluated</div></div>
+    <div class="stat"><div class="stat-icon" style="background:linear-gradient(135deg,#ec4899,#f43f5e)">⭐</div><div class="stat-val">${avgAll}</div><div class="stat-lbl">Overall Average</div></div>
+  </div>
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-title">All Evaluations</div>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        <button class="btn btn-success btn-sm" onclick="exportEvalCSV()">📊 Summary CSV</button>
+        <button class="btn btn-warning btn-sm" onclick="exportDetailedCSV()">📋 Detailed CSV</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportEvalXLSX()">📈 Excel</button>
+      </div>
+    </div>
+    <div class="search-wrap"><input type="text" placeholder="Search by candidate or panelist…" value="${evalSearch}" oninput="evalSearch=this.value;pgEvalDB()"></div>
+    ${list.length?`<div class="tbl-wrap"><table>
+      <thead><tr><th>Candidate</th><th>Panelist</th><th>Score</th><th>Verdict</th><th>Date</th><th>Comment</th><th></th></tr></thead>
+      <tbody>${list.map(e=>{const pct=(e.avg/5)*100;const r=recLabel(pct);return`<tr>
+        <td><strong>${e.candName}</strong></td>
+        <td style="color:var(--muted);font-size:.88rem">${e.panelistName||e.panelistEmail}</td>
+        <td><strong>${e.avg.toFixed(1)}/5</strong><div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div></td>
+        <td><span class="badge ${r.c}">${r.l}</span></td>
+        <td style="color:var(--muted);font-size:.85rem">${e.date}</td>
+        <td style="color:var(--muted);font-size:.82rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.comment||'—'}</td>
+        <td><button class="btn btn-ghost btn-xs" onclick="viewEvalDetail(${e.id})">👁 Detail</button></td>
+      </tr>`;}).join('')}</tbody></table></div>`:'<div class="no-data">No evaluations yet.</div>'}
+  </div>`;
+}
+
+function viewEvalDetail(evalId){
+  const d=dbLoad();const ev=d.evaluations.find(e=>e.id===evalId);if(!ev)return;
+  const qMap={};d.sections.forEach(sec=>sec.questions.forEach(q=>qMap[q.id]={text:q.text,section:sec.name}));
+  const rows=Object.entries(ev.scores||{}).map(([qId,sc])=>{
+    const info=qMap[qId]||{text:'Q#'+qId,section:'—'};
+    const note=(ev.notes||{})[qId]||'';
+    return`<tr><td style="color:var(--muted);font-size:.82rem">${info.section}</td><td style="font-size:.88rem">${info.text}</td><td style="text-align:center"><strong>${sc}/5</strong><div class="prog-bar" style="min-width:50px"><div class="prog-fill" style="width:${sc*20}%"></div></div></td><td style="color:var(--muted);font-size:.82rem;font-style:italic">${note||'—'}</td></tr>`;
+  }).join('');
+  const pct=(ev.avg/5)*100;const r=recLabel(pct);
+  openModal(`
+    <div class="modal-hdr"><span class="modal-title">📝 Evaluation Detail</span><button class="x-btn" onclick="closeModal()">×</button></div>
+    <div style="display:flex;gap:1rem;margin-bottom:1.25rem;flex-wrap:wrap">
+      <div style="flex:1"><div style="font-size:.72rem;color:var(--muted);text-transform:uppercase">Candidate</div><div style="font-weight:700">${ev.candName}</div></div>
+      <div style="flex:1"><div style="font-size:.72rem;color:var(--muted);text-transform:uppercase">Panelist</div><div style="font-weight:700">${ev.panelistName||ev.panelistEmail}</div><div style="color:var(--muted);font-size:.82rem">${ev.date}</div></div>
+      <div style="text-align:center"><div style="font-size:2rem;font-weight:800;color:var(--primary-light)">${ev.avg.toFixed(1)}<span style="font-size:.9rem;color:var(--muted)">/5</span></div><span class="badge ${r.c}">${r.l}</span></div>
+    </div>
+    <div class="tbl-wrap"><table><thead><tr><th>Section</th><th>Question</th><th>Score</th><th>Notes</th></tr></thead><tbody>${rows}</tbody></table></div>
+    ${ev.comment?`<div style="margin-top:1rem;background:rgba(15,23,42,.7);border-left:3px solid var(--primary);padding:.85rem 1rem;border-radius:8px"><div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;margin-bottom:.3rem">Overall Comment</div><div>${ev.comment}</div></div>`:''}`);
+}
+
+/* ═══════════════════ ADMIN — CONSOLIDATED REPORT ═══════════════════ */
+function pgReport(){
+  const d=dbLoad();const ranks=candRankings();
+  if(!ranks.length){document.getElementById('content').innerHTML=`<div class="page-header"><div class="page-title">📈 Consolidated Report</div></div><div class="card"><div class="no-data">No evaluations submitted yet.</div></div>`;return;}
+  const sectionAvgFor=(candId,secName)=>{
+    const sec=d.sections.find(s=>s.name===secName);if(!sec)return null;
+    const evals=d.evaluations.filter(e=>e.candId===candId);if(!evals.length)return null;
+    let t=0,n=0;evals.forEach(ev=>sec.questions.forEach(q=>{if((ev.scores||{})[q.id]!=null){t+=(ev.scores||{})[q.id];n++;}}));
+    return n?+(t/n).toFixed(2):null;
+  };
+  document.getElementById('content').innerHTML=`
+  <div class="page-header"><div class="page-title">📈 Consolidated Report</div><div class="page-sub">Generated: ${new Date().toLocaleString()}</div></div>
+  <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.5rem">
+    <button class="btn btn-success btn-sm" onclick="exportConsolidatedCSV()">📊 Export CSV</button>
+    <button class="btn btn-ghost btn-sm" onclick="exportConsolidatedXLSX()">📈 Export Excel</button>
+    <button class="btn btn-warning btn-sm" onclick="printConsolidatedReport()">🖨️ Print / PDF</button>
+  </div>
+  <div class="stats-row">
+    <div class="stat"><div class="stat-icon" style="background:linear-gradient(135deg,#4f46e5,#818cf8)">👥</div><div class="stat-val">${ranks.length}</div><div class="stat-lbl">Candidates Ranked</div></div>
+    <div class="stat"><div class="stat-icon" style="background:linear-gradient(135deg,#10b981,#059669)">🌟</div><div class="stat-val">${ranks.filter(r=>r.pct>=80).length}</div><div class="stat-lbl">Highly Recommended</div></div>
+    <div class="stat"><div class="stat-icon" style="background:linear-gradient(135deg,#6366f1,#818cf8)">✅</div><div class="stat-val">${ranks.filter(r=>r.pct>=65&&r.pct<80).length}</div><div class="stat-lbl">Recommended</div></div>
+    <div class="stat"><div class="stat-icon" style="background:linear-gradient(135deg,#ef4444,#f87171)">❌</div><div class="stat-val">${ranks.filter(r=>r.pct<50).length}</div><div class="stat-lbl">Not Recommended</div></div>
+  </div>
+  <!-- Rankings with section breakdown -->
+  <div class="card">
+    <div class="card-hdr"><div class="card-title">🏆 Candidate Rankings with Section Scores</div></div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>#</th><th>Candidate</th><th>Position</th>${d.sections.map(s=>`<th>${s.name}</th>`).join('')}<th>Overall</th><th>%</th><th>Evals</th><th>Recommendation</th></tr></thead>
+      <tbody>${ranks.map((r,i)=>{
+        const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
+        return`<tr>
+          <td><strong>${medal||i+1}</strong></td>
+          <td><strong>${r.cand.name}</strong><div style="color:var(--muted);font-size:.76rem">${r.cand.candidateId}</div></td>
+          <td style="color:var(--muted);font-size:.88rem">${r.cand.position}</td>
+          ${d.sections.map(s=>{const v=sectionAvgFor(r.cand.id,s.name);return`<td>${v!=null?`<strong>${v.toFixed(1)}</strong><div class="prog-bar" style="min-width:50px"><div class="prog-fill" style="width:${v*20}%;background:${recColor(v*20)}"></div></div>`:'<span style="color:var(--muted)">—</span>'}</td>`;}).join('')}
+          <td><strong style="color:var(--primary-light)">${r.avg.toFixed(2)}/5</strong></td>
+          <td>${r.pct.toFixed(1)}%<div class="prog-bar"><div class="prog-fill" style="width:${r.pct}%;background:${recColor(r.pct)}"></div></div></td>
+          <td style="text-align:center">${r.count}</td>
+          <td><span class="badge ${r.c}">${r.l}</span></td>
+        </tr>`;}).join('')}
+      </tbody>
+    </table></div>
+  </div>
+  <!-- Per-panelist breakdown -->
+  <div class="card">
+    <div class="card-hdr"><div class="card-title">👨‍💼 Scores per Panelist</div></div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Candidate</th><th>Position</th>${d.panelists.map(p=>`<th title="${p.email}">${p.name.split(' ')[0]}</th>`).join('')}<th>Panel Avg</th></tr></thead>
+      <tbody>${ranks.map(r=>{
+        const evMap={};d.evaluations.filter(e=>e.candId===r.cand.id).forEach(e=>evMap[e.panelistEmail]=e.avg);
+        return`<tr><td><strong>${r.cand.name}</strong></td><td style="color:var(--muted);font-size:.85rem">${r.cand.position}</td>
+          ${d.panelists.map(p=>{const sc=evMap[p.email];return`<td>${sc!=null?`<strong>${sc.toFixed(1)}</strong><div class="prog-bar" style="min-width:44px"><div class="prog-fill" style="width:${sc*20}%"></div></div>`:'<span style="color:var(--muted)">—</span>'}</td>`;}).join('')}
+          <td><strong style="color:var(--primary-light)">${r.avg.toFixed(2)}/5</strong></td></tr>`;}).join('')}
+      </tbody>
+    </table></div>
+  </div>
+  <!-- Comments -->
+  <div class="card">
+    <div class="card-hdr"><div class="card-title">💬 Panelist Comments</div></div>
+    ${ranks.map(r=>{const evals=d.evaluations.filter(e=>e.candId===r.cand.id&&e.comment);if(!evals.length)return'';
+      return`<div style="margin-bottom:1.25rem"><div style="font-weight:700;margin-bottom:.5rem">${r.cand.name} <span style="color:var(--muted);font-size:.85rem;font-weight:400">• ${r.cand.position}</span></div>
+        ${evals.map(e=>`<div style="background:rgba(15,23,42,.7);border-left:3px solid var(--primary);padding:.7rem 1rem;border-radius:8px;margin-bottom:.4rem"><div style="font-size:.78rem;color:var(--muted);margin-bottom:.25rem">${e.panelistName||e.panelistEmail} • ${e.date}</div><div style="font-size:.9rem">${e.comment}</div></div>`).join('')}</div>`;
+    }).join('')||'<div class="no-data">No comments yet.</div>'}
+  </div>`;
+}
+
+/* ═══════════════════ AI ANALYSIS ═══════════════════ */
+function showAI(candId){
+  const d=dbLoad();const cand=d.candidates.find(c=>c.id===candId);if(!cand)return;
+  const evals=d.evaluations.filter(e=>e.candId===candId);
+  if(!evals.length){openModal(`<div class="modal-hdr"><span class="modal-title">🤖 AI Analysis</span><button class="x-btn" onclick="closeModal()">×</button></div><div class="no-data">No evaluations yet for <strong>${cand.name}</strong>.</div>`);return;}
+  const avg=evals.reduce((s,e)=>s+e.avg,0)/evals.length;const pct=(avg/5)*100;
+  const skills={};d.sections.forEach(sec=>{let t=0,n=0;evals.forEach(ev=>sec.questions.forEach(q=>{if(ev.scores[q.id]!==undefined){t+=ev.scores[q.id];n++;}}));skills[sec.name]=n?t/n:0;});
+  const r=recLabel(pct);
+  const topSk=Object.entries(skills).sort((a,b)=>b[1]-a[1])[0];
+  const lowSk=Object.entries(skills).sort((a,b)=>a[1]-b[1])[0];
+  const sd=Math.sqrt(evals.map(e=>e.avg).reduce((s,x)=>s+Math.pow(x-avg,2),0)/evals.length);
+  let summary='';
+  if(pct>=80)summary=`${cand.name} demonstrates exceptional capability across all assessed competencies. A strong hire recommendation.`;
+  else if(pct>=65)summary=`${cand.name} shows solid competency with room for growth. Recommended for further consideration.`;
+  else if(pct>=50)summary=`${cand.name} shows potential but has notable gaps. Further assessment recommended.`;
+  else summary=`${cand.name} falls below expected standards in multiple competency areas. Not recommended at this time.`;
+  openModal(`
+    <div class="modal-hdr"><span class="modal-title">🤖 AI Analysis — ${cand.name}</span><button class="x-btn" onclick="closeModal()">×</button></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:1.25rem;text-align:center">
+      <div style="background:rgba(79,70,229,.1);border:1px solid rgba(79,70,229,.2);border-radius:12px;padding:1rem"><div style="font-size:1.9rem;font-weight:800;color:var(--primary-light)">${avg.toFixed(1)}<span style="font-size:.85rem;color:var(--muted)">/5</span></div><div style="color:var(--muted);font-size:.75rem">Avg Score</div><div class="prog-bar" style="margin-top:.4rem"><div class="prog-fill" style="width:${pct}%"></div></div></div>
+      <div style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);border-radius:12px;padding:1rem"><div style="font-size:1.9rem;font-weight:800;color:var(--success)">${evals.length}</div><div style="color:var(--muted);font-size:.75rem">Evaluations</div></div>
+      <div style="background:rgba(236,72,153,.1);border:1px solid rgba(236,72,153,.2);border-radius:12px;padding:1rem"><div style="font-size:1.9rem;font-weight:800;color:var(--pink)">${(Math.max(0,100-sd*40)).toFixed(0)}%</div><div style="color:var(--muted);font-size:.75rem">Consistency</div></div>
+    </div>
+    <div class="ai-panel"><div class="ai-panel-title">🎯 Recommendation: <span class="badge ${r.c}" style="margin-left:.4rem">${r.l}</span></div>
+    <p style="color:#e2e8f0;line-height:1.7;font-size:.9rem">${summary}</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-top:.85rem">
+      <div style="background:rgba(16,185,129,.1);padding:.6rem .8rem;border-radius:8px;font-size:.82rem">🏆 <strong style="color:var(--success)">Top skill:</strong> ${topSk?topSk[0]+' ('+topSk[1].toFixed(1)+')':'N/A'}</div>
+      <div style="background:rgba(245,158,11,.1);padding:.6rem .8rem;border-radius:8px;font-size:.82rem">⚠️ <strong style="color:var(--warning)">Weakest:</strong> ${lowSk?lowSk[0]+' ('+lowSk[1].toFixed(1)+')':'N/A'}</div>
+    </div></div>
+    <div style="font-weight:700;margin-bottom:.85rem">📊 Competency Breakdown</div>
+    ${Object.entries(skills).map(([sk,sc])=>`<div style="margin-bottom:.75rem"><div style="display:flex;justify-content:space-between;margin-bottom:.3rem;font-size:.88rem"><span>${sk}</span><span style="color:var(--muted)">${sc.toFixed(1)}/5</span></div><div class="prog-bar"><div class="prog-fill" style="width:${(sc/5)*100}%"></div></div></div>`).join('')}
+    <div style="font-weight:700;margin:.85rem 0 .65rem">💬 Panelist Feedback</div>
+    ${evals.map(e=>`<div style="background:rgba(15,23,42,.7);border-left:3px solid var(--primary);padding:.75rem 1rem;border-radius:8px;margin-bottom:.5rem"><div style="display:flex;justify-content:space-between;margin-bottom:.3rem;flex-wrap:wrap;gap:.3rem"><strong style="font-size:.88rem">${e.panelistName||e.panelistEmail}</strong><span style="color:var(--primary);font-weight:700">${e.avg.toFixed(1)}/5 • ${e.date}</span></div><div style="color:var(--muted);font-size:.85rem">${e.comment||'No comment.'}</div></div>`).join('')}`);
+}
+
+/* ═══════════════════ PANELIST — MY EVALUATIONS (group-based, restored) ═══════════════════ */
+let myFilter='all';
+function pgMyEvals(){
+  const d=dbLoad();
+  let cands=myGroupCands();
+  const doneSet=new Set(d.evaluations.filter(e=>e.panelistEmail===CU.email).map(e=>e.candId));
+  if(myFilter==='done')cands=cands.filter(c=>doneSet.has(c.id));
+  if(myFilter==='pending')cands=cands.filter(c=>!doneSet.has(c.id));
+  const myGroups=d.groups.filter(g=>{const p=d.panelists.find(p=>p.email===CU.email);return p&&g.panelistIds.includes(p.id);});
+  const all=myGroupCands();
+  const chips=[['all','All ('+all.length+')'],['pending','⏳ Pending ('+all.filter(c=>!doneSet.has(c.id)).length+')'],['done','✅ Done ('+all.filter(c=>doneSet.has(c.id)).length+')']].map(([k,l])=>`<button class="btn btn-xs ${myFilter===k?'btn-primary':'btn-ghost'}" onclick="myFilter='${k}';pgMyEvals()">${l}</button>`).join('');
+  document.getElementById('content').innerHTML=`
+  <div class="page-header"><div class="page-title">📝 My Evaluations</div><div class="page-sub">Groups: ${myGroups.map(g=>`<span class="chip">${g.name}</span>`).join('')||'Not assigned to any group yet'}</div></div>
+  ${!myGroups.length?`<div class="card"><div class="info-box" style="background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.3);color:#fbbf24">⚠️ You are not assigned to any interview group yet. Contact your administrator.</div></div>`:
+  `<div class="card">
+    <div class="card-hdr"><div class="card-title">Candidates to Evaluate</div><div style="display:flex;gap:.4rem">${chips}</div></div>
+    ${cands.length?cands.map(c=>{
+      const myEval=d.evaluations.find(e=>e.candId===c.id&&e.panelistEmail===CU.email);
+      const allEvals=d.evaluations.filter(e=>e.candId===c.id);
+      const panelAvg=allEvals.length?(allEvals.reduce((s,e)=>s+e.avg,0)/allEvals.length).toFixed(1):null;
+      return`<div class="cand-result">
+        <div>
+          <div style="font-weight:700;font-size:1rem">${c.name}</div>
+          <div style="color:var(--muted);font-size:.85rem">${c.position} | ID: ${c.candidateId}</div>
+          ${c.email?`<div style="color:var(--muted);font-size:.8rem">📧 ${c.email}</div>`:''}
+          ${myEval?`<div style="font-size:.78rem;color:var(--success);margin-top:.3rem">Your score: ${myEval.avg.toFixed(1)}/5 • ${myEval.date}</div>`:''}
+        </div>
+        <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
+          ${panelAvg?`<div style="text-align:center"><div style="font-size:.7rem;color:var(--muted);text-transform:uppercase">Panel Avg</div><div style="font-weight:800">${panelAvg}/5</div></div>`:''}
+          <span class="badge ${myEval?'badge-green':'badge-yellow'}">${myEval?'✅ Done':'⏳ Pending'}</span>
+          <button class="btn btn-primary btn-sm" onclick="startEval(${c.id})">📝 ${myEval?'Re-evaluate':'Evaluate'}</button>
+        </div>
+      </div>`;}).join(''):`<div class="no-data">No candidates in this filter.</div>`}
+  </div>`}`;
+}
+
+/* ═══════════════════ PANELIST — SEARCH (enhanced) ═══════════════════ */
+let pSearchQ='';
+function pgSearch(){
+  const d=dbLoad();
+  const allCands=myGroupCands();
+  const q=pSearchQ.trim().toLowerCase();
+  const filtered=q?allCands.filter(c=>matchCand(c,q)):allCands;
+  const myEvalMap={};d.evaluations.filter(e=>e.panelistEmail===CU.email).forEach(e=>myEvalMap[e.candId]=e);
+  document.getElementById('content').innerHTML=`
+  <div class="page-header"><div class="page-title">🔍 Search Candidates</div><div class="page-sub">Search by full name, phone, email, position, or candidate ID</div></div>
+  <div style="background:linear-gradient(135deg,rgba(79,70,229,.12),rgba(236,72,153,.08));border:1px solid rgba(79,70,229,.25);border-radius:18px;padding:1.75rem;margin-bottom:1.5rem">
+    <h3 style="font-weight:700;margin-bottom:.35rem">Find a Candidate</h3>
+    <p style="color:var(--muted);font-size:.88rem;margin-bottom:1.1rem">Supports full name, partial name, phone number, email address, position, or ID</p>
+    <div style="position:relative">
+      <input type="text" id="p-search-input" value="${pSearchQ}" placeholder="e.g. John Doe, 0712345678, john@email.com…"
+        oninput="pSearchQ=this.value;pgSearch()"
+        style="width:100%;padding:1rem 1.25rem 1rem 3rem;background:rgba(15,23,42,.85);border:2px solid rgba(79,70,229,.35);border-radius:14px;color:#fff;font-size:1rem;font-family:inherit;transition:all .25s"
+        onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='rgba(79,70,229,.35)'">
+      <span style="position:absolute;left:1rem;top:50%;transform:translateY(-50%);font-size:1.05rem;pointer-events:none">🔍</span>
+      ${q?`<button onclick="pSearchQ='';pgSearch()" style="position:absolute;right:1rem;top:50%;transform:translateY(-50%);background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);border-radius:6px;color:#ef4444;padding:.25rem .6rem;cursor:pointer;font-size:.8rem;font-weight:700;font-family:inherit">✕ Clear</button>`:''}
+    </div>
+    <div style="margin-top:.65rem;font-size:.85rem;color:var(--muted)">
+      ${q?`<strong style="color:#fff">${filtered.length}</strong> result${filtered.length!==1?'s':''} for "<strong style="color:#fff">${pSearchQ}</strong>"`:
+      `<strong style="color:#fff">${allCands.length}</strong> candidate${allCands.length!==1?'s':''} in your groups`}
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-hdr"><div class="card-title">Results</div><span class="badge badge-blue">${filtered.length} shown</span></div>
+    ${!allCands.length?`<div class="info-box" style="background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.3);color:#fbbf24">⚠️ You are not assigned to any groups. Contact your administrator.</div>`:
+    filtered.length?filtered.map(c=>{
+      const ev=myEvalMap[c.id];
+      const allEvals=d.evaluations.filter(e=>e.candId===c.id);
+      const panelAvg=allEvals.length?(allEvals.reduce((s,e)=>s+e.avg,0)/allEvals.length).toFixed(1):null;
+      return`<div class="cand-result">
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:1rem">${hl(c.name,q)}</div>
+          <div style="color:var(--muted);font-size:.85rem">${hl(c.position,q)}</div>
+          <div style="font-family:monospace;color:#818cf8;font-size:.82rem;margin-top:.2rem">📞 ${hl(c.candidateId,q)}</div>
+          ${c.email?`<div style="color:var(--muted);font-size:.8rem">📧 ${hl(c.email,q)}</div>`:''}
+          ${ev?`<div style="font-size:.78rem;color:var(--success);margin-top:.3rem">✅ Your score: ${ev.avg.toFixed(1)}/5 • ${ev.date}</div>`:''}
+        </div>
+        <div style="display:flex;align-items:center;gap:.65rem;flex-wrap:wrap;flex-shrink:0">
+          ${panelAvg?`<div style="text-align:center"><div style="font-size:.68rem;color:var(--muted);text-transform:uppercase">Panel</div><div style="font-weight:800;font-size:.95rem">${panelAvg}/5</div></div>`:''}
+          <span class="badge ${ev?'badge-green':'badge-yellow'}">${ev?'✅ Done':'⏳ Pending'}</span>
+          <button class="btn btn-primary btn-xs" onclick="startEval(${c.id})">📝 Evaluate</button>
+          <button class="btn btn-ghost btn-xs" onclick="showAI(${c.id})">🤖 AI</button>
+        </div>
+      </div>`;}).join(''):`<div class="no-data"><div style="font-size:2.5rem;margin-bottom:.75rem">🔍</div>No candidates match "${pSearchQ}".<br><button class="btn btn-ghost btn-sm" style="margin-top:.75rem" onclick="pSearchQ='';pgSearch()">Clear Search</button></div>`}
+  </div>`;
+  setTimeout(()=>{const el=document.getElementById('p-search-input');if(el&&!pSearchQ)el.focus();},60);
+}
+
+/* ═══════════════════ PANELIST — MY DASHBOARD ═══════════════════ */
+function pgMyDash(){
+  const d=dbLoad();
+  const cands=myGroupCands();
+  const myEvals=d.evaluations.filter(e=>e.panelistEmail===CU.email);
+  const done=cands.filter(c=>myEvals.some(e=>e.candId===c.id)).length;
+  const avgScore=myEvals.length?(myEvals.reduce((s,e)=>s+e.avg,0)/myEvals.length).toFixed(1):'—';
+  const ranks=cands.map(c=>{
+    const evals=d.evaluations.filter(e=>e.candId===c.id);if(!evals.length)return null;
+    const avg=evals.reduce((s,e)=>s+e.avg,0)/evals.length;const pct=(avg/5)*100;
+    return{c,avg,pct,...recLabel(pct),count:evals.length};
+  }).filter(Boolean).sort((a,b)=>b.avg-a.avg);
+  document.getElementById('content').innerHTML=`
+  <div class="page-header"><div class="page-title">📊 My Dashboard</div><div class="page-sub">Your evaluation summary</div></div>
+  <div class="stats-row">
+    <div class="stat"><div class="stat-icon" style="background:linear-gradient(135deg,#4f46e5,#818cf8)">👥</div><div class="stat-val">${cands.length}</div><div class="stat-lbl">My Candidates</div></div>
+    <div class="stat"><div class="stat-icon" style="background:linear-gradient(135deg,#10b981,#059669)">✅</div><div class="stat-val">${done}</div><div class="stat-lbl">Evaluated</div></div>
+    <div class="stat"><div class="stat-icon" style="background:linear-gradient(135deg,#f59e0b,#f97316)">⏳</div><div class="stat-val">${cands.length-done}</div><div class="stat-lbl">Remaining</div></div>
+    <div class="stat"><div class="stat-icon" style="background:linear-gradient(135deg,#ec4899,#f43f5e)">⭐</div><div class="stat-val">${avgScore}</div><div class="stat-lbl">My Avg Score</div></div>
+  </div>
+  <div class="card">
+    <div class="card-hdr"><div class="card-title">Candidate Rankings (Panel View)</div></div>
+    ${ranks.length?`<div class="tbl-wrap"><table>
+      <thead><tr><th>#</th><th>Name</th><th>Position</th><th>Panel Avg</th><th>Evals</th><th>Status</th><th></th></tr></thead>
+      <tbody>${ranks.map((r,i)=>`<tr>
+        <td><strong style="color:${i<3?['#fbbf24','#94a3b8','#f97316'][i]:'#fff'}">${i+1}</strong></td>
+        <td><strong>${r.c.name}</strong></td><td style="color:var(--muted)">${r.c.position}</td>
+        <td><strong>${r.avg.toFixed(1)}/5</strong><div class="prog-bar"><div class="prog-fill" style="width:${r.pct}%"></div></div></td>
+        <td style="text-align:center">${r.count}</td>
+        <td><span class="badge ${r.c}">${r.l}</span></td>
+        <td><button class="btn btn-ghost btn-xs" onclick="showAI(${r.c.id})">🤖 AI</button></td>
+      </tr>`).join('')}</tbody></table></div>`:'<div class="no-data">Submit evaluations to see rankings.</div>'}
+  </div>`;
+}
+
+/* ═══════════════════ EVALUATION FORM (with per-question notes) ═══════════════════ */
+let evalScores={},evalNotes={};
+function startEval(candId){
+  const myCands=myGroupCands();
+  if(CU.role!=='admin'&&!myCands.some(c=>c.id===candId)){alert('🔒 Access denied.');return;}
+  const d=dbLoad();const cand=d.candidates.find(c=>c.id===candId);if(!cand)return;
+  let totalQ=0;d.sections.forEach(s=>totalQ+=s.questions.length);
+  if(!totalQ){alert('❌ No questions set up yet. Contact admin.');return;}
+  evalScores={};evalNotes={};
+  // Pre-fill existing evaluation if re-evaluating
+  const prev=d.evaluations.find(e=>e.candId===candId&&e.panelistEmail===CU.email);
+  if(prev){Object.assign(evalScores,prev.scores||{});Object.assign(evalNotes,prev.notes||{});}
+  document.getElementById('content').innerHTML=`
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:.75rem">
+    <div><div class="page-title">📝 Evaluating: ${cand.name}</div><div class="page-sub">${cand.position} | ID: ${cand.candidateId}</div></div>
+    <button class="btn btn-ghost btn-sm" onclick="go(CU.role==='admin'?'candidates':'myevals')">← Back</button>
+  </div>
+  <div class="card" style="margin-bottom:1rem">
+    <div style="display:flex;justify-content:space-between;font-size:.9rem;margin-bottom:.4rem">
+      <span style="color:var(--muted)">Progress</span>
+      <span id="prog-txt" style="color:var(--muted)">${prev?totalQ:0}/${totalQ}</span>
+    </div>
+    <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:${prev?'100':'0'}%"></div></div>
+    ${prev?`<div style="font-size:.78rem;color:var(--success);margin-top:.3rem">Re-evaluation — previous scores pre-filled (${prev.date})</div>`:''}
+  </div>
+  ${d.sections.map(sec=>`
+    <div class="card">
+      <div style="font-weight:700;font-size:1.05rem;margin-bottom:1rem;padding-bottom:.75rem;border-bottom:1px solid var(--border)">${sec.name}</div>
+      ${sec.questions.map((q,qi)=>`
+        <div class="q-block">
+          <p style="font-weight:600;color:#e2e8f0;margin-bottom:.6rem;font-size:.93rem"><strong style="color:var(--muted)">Q${qi+1}.</strong> ${q.text}</p>
+          <div class="score-btns">
+            ${[0,1,2,3,4,5].map(n=>`<button type="button" class="sc${evalScores[q.id]===n?' on':''}" id="sc-${q.id}-${n}" onclick="pickScore(${q.id},${n},${totalQ})">${n}</button>`).join('')}
+            <span style="font-size:.75rem;color:var(--muted);align-self:center">0=N/A · 5=Excellent</span>
+          </div>
+          <textarea class="q-note" id="note-${q.id}" placeholder="💬 Notes / observations for this question (optional)…" oninput="evalNotes[${q.id}]=this.value">${evalNotes[q.id]||''}</textarea>
+        </div>`).join('')}
+    </div>`).join('')}
+  <div class="card">
+    <label style="font-weight:600;display:block;margin-bottom:.6rem">💬 Overall Comment</label>
+    <textarea id="eval-comment" placeholder="Your overall assessment of this candidate…" style="width:100%;padding:.82rem 1rem;background:rgba(15,23,42,.8);border:1.5px solid var(--border);border-radius:10px;color:#fff;font-size:.92rem;font-family:inherit;resize:vertical;min-height:90px">${prev?prev.comment||'':''}</textarea>
+    <button class="btn btn-success btn-full" style="margin-top:1rem" onclick="submitEval(${candId},'${cand.name.replace(/'/g,"\\'")}',${totalQ})">✅ Submit Evaluation</button>
+  </div>`;
+}
+function pickScore(qId,score,total){
+  evalScores[qId]=score;
+  for(let i=0;i<=5;i++){const b=document.getElementById(`sc-${qId}-${i}`);if(b)b.className='sc'+(i===score?' on':'');}
+  const done=Object.keys(evalScores).length;
+  const f=document.getElementById('prog-fill');const t=document.getElementById('prog-txt');
+  if(f)f.style.width=(done/total*100)+'%';if(t)t.textContent=`${done}/${total}`;
+}
+function submitEval(candId,candName,total){
+  const answered=Object.keys(evalScores).length;
+  if(answered<total){alert(`⚠️ Please answer all ${total} questions. ${total-answered} remaining.`);return;}
+  // Capture notes from DOM
+  const d=dbLoad();
+  d.sections.forEach(sec=>sec.questions.forEach(q=>{const el=document.getElementById('note-'+q.id);if(el)evalNotes[q.id]=el.value.trim();}));
+  const avg=Object.values(evalScores).reduce((a,b)=>a+b,0)/total;
+  // Remove old eval from same panelist for same candidate (re-eval)
+  d.evaluations=d.evaluations.filter(e=>!(e.candId===candId&&e.panelistEmail===CU.email));
+  d.evaluations.push({id:d.seq.e++,candId,candName,panelistEmail:CU.email,panelistName:CU.name,scores:{...evalScores},notes:{...evalNotes},avg,comment:document.getElementById('eval-comment').value||'',status:'done',date:new Date().toLocaleDateString()});
+  dbSave(d);
+  const allEvals=d.evaluations.filter(e=>e.candId===candId);
+  const panelAvg=(allEvals.reduce((s,e)=>s+e.avg,0)/allEvals.length).toFixed(1);
+  alert(`🎉 Evaluation submitted!\n\nYour Score: ${avg.toFixed(1)}/5\nPanel Average: ${panelAvg}/5 (${allEvals.length} evaluation${allEvals.length>1?'s':''})`);
+  go(CU.role==='admin'?'candidates':'myevals');
+}
+
+/* ═══════════════════ EXPORTS ═══════════════════ */
+function dlCSV(rows,name){const b=new Blob([rows.map(r=>r.map(v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`).join(',')).join('\n')],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();}
+function dlXLSX(sheets,filename){
+  const wb=XLSX.utils.book_new();
+  sheets.forEach(([name,data])=>XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(data),name));
+  XLSX.writeFile(wb,filename);
+}
+
+// Summary ranks CSV
+function exportCSV(){
+  const ranks=candRankings();
+  dlCSV([['Rank','Candidate ID','Name','Position','Avg Score','Score %','Evaluations','Recommendation'],...ranks.map((r,i)=>[i+1,r.cand.candidateId,r.cand.name,r.cand.position,r.avg.toFixed(2),(r.pct).toFixed(1)+'%',r.count,r.l])],'candidate_rankings.csv');
+}
+function exportXLSX(){
+  const ranks=candRankings();
+  dlXLSX([['Rankings',[['Rank','Candidate ID','Name','Position','Avg Score','Score %','Evaluations','Recommendation'],...ranks.map((r,i)=>[i+1,r.cand.candidateId,r.cand.name,r.cand.position,r.avg.toFixed(2),(r.pct).toFixed(1)+'%',r.count,r.l])]]],'rankings.xlsx');
+}
+
+// Detailed CSV: per-panelist, per-question scores + notes
+function exportDetailedCSV(){
+  const d=dbLoad();if(!d.evaluations.length){alert('No evaluations to export.');return;}
+  const qList=[];d.sections.forEach(sec=>sec.questions.forEach(q=>qList.push({id:q.id,text:q.text,section:sec.name})));
+  const header=['Candidate ID','Candidate Name','Position','Panelist Name','Panelist Email','Date','Overall Avg /5','Recommendation',
+    ...qList.flatMap(q=>[`[${q.section}] ${q.text} — Score`,`[${q.section}] ${q.text} — Notes`]),
+    'Overall Comment'];
+  const rows=d.evaluations.map(ev=>{
+    const pct=(ev.avg/5)*100;const r=recLabel(pct);
+    return[ev.candId||'',ev.candName||'',ev.candPosition||'',ev.panelistName||'',ev.panelistEmail||'',ev.date||'',ev.avg.toFixed(2),r.l,
+      ...qList.flatMap(q=>[(ev.scores||{})[q.id]!=null?(ev.scores||{})[q.id]:'',(ev.notes||{})[q.id]||'']),
+      ev.comment||''];
+  });
+  dlCSV([header,...rows],'detailed_evaluations.csv');
+}
+
+function exportEvalCSV(){
+  const d=dbLoad();
+  dlCSV([['Candidate','Panelist','Score','Recommendation','Date','Comment'],...d.evaluations.map(e=>{const r=recLabel((e.avg/5)*100);return[e.candName,e.panelistName||e.panelistEmail,e.avg.toFixed(2),r.l,e.date,e.comment||''];})],'evaluations_summary.csv');
+}
+function exportEvalXLSX(){
+  const d=dbLoad();
+  dlXLSX([['Evaluations',[['Candidate','Panelist','Score','Recommendation','Date','Comment'],...d.evaluations.map(e=>{const r=recLabel((e.avg/5)*100);return[e.candName,e.panelistName||e.panelistEmail,e.avg.toFixed(2),r.l,e.date,e.comment||''];})]]],'evaluations.xlsx');
+}
+
+function exportConsolidatedCSV(){
+  const d=dbLoad();const ranks=candRankings();
+  const secNames=d.sections.map(s=>s.name);
+  const secAvg=(candId,sn)=>{const sec=d.sections.find(s=>s.name===sn);if(!sec)return'';const ev=d.evaluations.filter(e=>e.candId===candId);if(!ev.length)return'';let t=0,n=0;ev.forEach(e=>sec.questions.forEach(q=>{if((e.scores||{})[q.id]!=null){t+=(e.scores||{})[q.id];n++;}}));return n?(t/n).toFixed(2):'';}
+  dlCSV([['Rank','Candidate ID','Name','Position',...secNames,'Overall Avg','Score %','Evaluations','Recommendation'],
+    ...ranks.map((r,i)=>[i+1,r.cand.candidateId,r.cand.name,r.cand.position,...secNames.map(sn=>secAvg(r.cand.id,sn)),r.avg.toFixed(2),(r.pct).toFixed(1)+'%',r.count,r.l])],'consolidated_report.csv');
+}
+function exportConsolidatedXLSX(){
+  const d=dbLoad();const ranks=candRankings();const secNames=d.sections.map(s=>s.name);
+  const secAvg=(candId,sn)=>{const sec=d.sections.find(s=>s.name===sn);if(!sec)return'';const ev=d.evaluations.filter(e=>e.candId===candId);if(!ev.length)return'';let t=0,n=0;ev.forEach(e=>sec.questions.forEach(q=>{if((e.scores||{})[q.id]!=null){t+=(e.scores||{})[q.id];n++;}}));return n?+(t/n).toFixed(2):'';}
+  // Sheet 1 Rankings
+  const rankData=[['Rank','Candidate ID','Name','Position',...secNames,'Overall Avg','Score %','Evaluations','Recommendation'],...ranks.map((r,i)=>[i+1,r.cand.candidateId,r.cand.name,r.cand.position,...secNames.map(sn=>secAvg(r.cand.id,sn)),r.avg.toFixed(2),(r.pct).toFixed(1)+'%',r.count,r.l])];
+  // Sheet 2 Panelist breakdown
+  const panData=[['Candidate','Position',...d.panelists.map(p=>p.name),'Panel Avg'],...ranks.map(r=>{const em={};d.evaluations.filter(e=>e.candId===r.cand.id).forEach(e=>em[e.panelistEmail]=e.avg);return[r.cand.name,r.cand.position,...d.panelists.map(p=>em[p.email]!=null?+em[p.email].toFixed(2):'—'),r.avg.toFixed(2)];})];
+  // Sheet 3 Detailed per-question
+  const qList=[];d.sections.forEach(sec=>sec.questions.forEach(q=>qList.push({id:q.id,text:q.text,section:sec.name})));
+  const detHead=['Candidate','Position','Panelist','Date','Avg',...qList.map(q=>`[${q.section}] ${q.text}`),...qList.map(q=>`Notes: ${q.text}`),'Comment'];
+  const detRows=d.evaluations.map(ev=>[ev.candName,ev.candPosition||'',ev.panelistName||ev.panelistEmail,ev.date,ev.avg.toFixed(2),...qList.map(q=>(ev.scores||{})[q.id]!=null?(ev.scores||{})[q.id]:''),...qList.map(q=>(ev.notes||{})[q.id]||''),ev.comment||'']);
+  dlXLSX([['Rankings',rankData],['Panelist Scores',panData],['Detailed Scores',[detHead,...detRows]]],'consolidated_report.xlsx');
+}
+
+function printReport(){
+  const d=dbLoad();const ranks=candRankings();if(!ranks.length){alert('No data to report.');return;}
+  let body=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Interview Report</title><style>body{font-family:Arial,sans-serif;padding:40px;color:#1f2937}h1{color:#4f46e5}table{width:100%;border-collapse:collapse;margin-top:1rem}th{background:#4f46e5;color:#fff;padding:8px 12px;text-align:left}td{padding:8px 12px;border-bottom:1px solid #e5e7eb}.btn{background:#4f46e5;color:#fff;border:none;padding:10px 24px;border-radius:8px;cursor:pointer;font-size:1rem;margin-bottom:1rem}@media print{.btn{display:none}}</style></head><body>
+    <button class="btn" onclick="window.print()">🖨️ Print / Save PDF</button>
+    <h1>🎯 Interview Evaluation Report</h1>
+    <p style="color:#6b7280">Generated: ${new Date().toLocaleString()}</p>
+    <table><thead><tr><th>#</th><th>Name</th><th>Position</th><th>Avg Score</th><th>Evals</th><th>Recommendation</th></tr></thead><tbody>
+    ${ranks.map((r,i)=>`<tr><td>${i+1}</td><td>${r.cand.name}</td><td>${r.cand.position}</td><td>${r.avg.toFixed(1)}/5</td><td>${r.count}</td><td>${r.l}</td></tr>`).join('')}
+    </tbody></table></body></html>`;
+  try{const w=window.open('','_blank');w.document.open();w.document.write(body);w.document.close();}
+  catch(e){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([body],{type:'text/html'}));a.download='report.html';a.click();}
+}
+function printConsolidatedReport(){
+  const d=dbLoad();const ranks=candRankings();if(!ranks.length){alert('No data.');return;}
+  const secNames=d.sections.map(s=>s.name);
+  const secAvg=(candId,sn)=>{const sec=d.sections.find(s=>s.name===sn);if(!sec)return'—';const ev=d.evaluations.filter(e=>e.candId===candId);if(!ev.length)return'—';let t=0,n=0;ev.forEach(e=>sec.questions.forEach(q=>{if((e.scores||{})[q.id]!=null){t+=(e.scores||{})[q.id];n++;}}));return n?(t/n).toFixed(1):'—';}
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Consolidated Report</title>
+  <style>body{font-family:Arial,sans-serif;padding:40px;color:#1f2937;font-size:13px}h1{color:#4f46e5}h2{color:#374151;margin:2rem 0 .75rem;border-bottom:2px solid #e5e7eb;padding-bottom:.4rem}table{width:100%;border-collapse:collapse;margin-bottom:1.5rem}th{background:#4f46e5;color:#fff;padding:8px 10px;text-align:left;font-size:11px}td{padding:7px 10px;border-bottom:1px solid #e5e7eb;font-size:12px}.btn{background:#4f46e5;color:#fff;border:none;padding:10px 24px;border-radius:8px;cursor:pointer;font-size:1rem;margin-bottom:1.5rem}@media print{.btn{display:none}}</style></head><body>
+  <button class="btn" onclick="window.print()">🖨️ Print / Save PDF</button>
+  <h1>🎯 Consolidated Interview Report</h1>
+  <p style="color:#6b7280">Generated: ${new Date().toLocaleString()} | ${ranks.length} candidates | ${d.evaluations.length} evaluations</p>
+  <h2>🏆 Rankings</h2>
+  <table><thead><tr><th>#</th><th>Candidate</th><th>Position</th>${secNames.map(s=>`<th>${s}</th>`).join('')}<th>Avg</th><th>%</th><th>Evals</th><th>Recommendation</th></tr></thead>
+  <tbody>${ranks.map((r,i)=>`<tr style="background:${i%2?'#f8fafc':'#fff'}"><td>${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td><td><strong>${r.cand.name}</strong><br><small style="color:#6b7280">${r.cand.candidateId}</small></td><td>${r.cand.position}</td>${secNames.map(sn=>`<td style="text-align:center">${secAvg(r.cand.id,sn)}</td>`).join('')}<td style="text-align:center;font-weight:700;color:#4f46e5">${r.avg.toFixed(2)}/5</td><td style="text-align:center">${r.pct.toFixed(1)}%</td><td style="text-align:center">${r.count}</td><td><strong>${r.l}</strong></td></tr>`).join('')}
+  </tbody></table>
+  <h2>👨‍💼 Panelist Breakdown</h2>
+  <table><thead><tr><th>Candidate</th><th>Position</th>${d.panelists.map(p=>`<th>${p.name}</th>`).join('')}<th>Panel Avg</th></tr></thead>
+  <tbody>${ranks.map(r=>{const em={};d.evaluations.filter(e=>e.candId===r.cand.id).forEach(e=>em[e.panelistEmail]=e.avg);return`<tr><td><strong>${r.cand.name}</strong></td><td>${r.cand.position}</td>${d.panelists.map(p=>em[p.email]!=null?`<td style="text-align:center">${em[p.email].toFixed(1)}</td>`:`<td style="text-align:center;color:#9ca3af">—</td>`).join('')}<td style="text-align:center;font-weight:700;color:#4f46e5">${r.avg.toFixed(1)}/5</td></tr>`;}).join('')}</tbody></table>
+  </body></html>`;
+  try{const w=window.open('','_blank');w.document.open();w.document.write(html);w.document.close();}
+  catch(e){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([html],{type:'text/html'}));a.download='consolidated_report.html';a.click();}
+}
+</script>
+</body>
+</html>
